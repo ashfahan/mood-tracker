@@ -6,9 +6,14 @@ import { MOOD_ICONS, MOOD_ICONS_SMALL, MOOD_LABELS, MOOD_LEVELS } from "@/consta
 interface MoodSelectorProps {
   selectedMood: number
   onSelectMood: (mood: number) => void
+  "aria-labelledby"?: string
 }
 
-export default function MoodSelector({ selectedMood, onSelectMood }: MoodSelectorProps) {
+export default function MoodSelector({
+  selectedMood,
+  onSelectMood,
+  "aria-labelledby": ariaLabelledBy,
+}: MoodSelectorProps) {
   const handleSliderChange = (value: number[]) => {
     onSelectMood(value[0])
   }
@@ -21,7 +26,8 @@ export default function MoodSelector({ selectedMood, onSelectMood }: MoodSelecto
             key={value}
             type="button"
             onClick={() => onSelectMood(value)}
-            className="flex flex-col items-center gap-1 p-1 rounded-md hover:bg-gray-100 transition-colors"
+            className="flex flex-col items-center gap-1 p-1 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+            aria-label={`Select mood: ${MOOD_LABELS[value]}`}
           >
             {MOOD_ICONS_SMALL[value]}
             <span className="text-xs">{MOOD_LABELS[value]}</span>
@@ -29,7 +35,14 @@ export default function MoodSelector({ selectedMood, onSelectMood }: MoodSelecto
         ))}
       </div>
 
-      <Slider value={[selectedMood || 3]} max={5} min={1} step={1} onValueChange={handleSliderChange} />
+      <Slider
+        value={[selectedMood || 3]}
+        max={5}
+        min={1}
+        step={1}
+        onValueChange={handleSliderChange}
+        aria-labelledby={ariaLabelledBy}
+      />
 
       <div className="flex justify-center mt-2">
         {selectedMood ? (

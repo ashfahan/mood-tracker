@@ -121,18 +121,21 @@ export default function NewEntryDialog({ onOpenChange, onSave, entries, selected
     })
   }
 
+  const formattedDate = format(selectedDate, "MMMM d, yyyy")
+  const dialogTitle = isEditing ? `Edit Mood for ${formattedDate}` : "How are you feeling?"
+
   return (
     <Dialog open={true} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
-          <DialogTitle>How are you feeling?</DialogTitle>
+          <DialogTitle>{dialogTitle}</DialogTitle>
         </DialogHeader>
 
         {isEditing && (
-          <Alert className="bg-amber-50 border-amber-200">
-            <AlertCircle className="h-4 w-4 text-amber-600" />
-            <AlertDescription className="text-amber-800">
-              You're editing an existing entry for {format(selectedDate, "MMMM d, yyyy")}.
+          <Alert className="bg-amber-50 border-amber-200 dark:bg-amber-950 dark:border-amber-900">
+            <AlertCircle className="h-4 w-4 text-amber-600 dark:text-amber-400" aria-hidden="true" />
+            <AlertDescription className="text-amber-800 dark:text-amber-300">
+              You're editing an existing entry for {formattedDate}.
             </AlertDescription>
           </Alert>
         )}
@@ -144,16 +147,17 @@ export default function NewEntryDialog({ onOpenChange, onSave, entries, selected
               name="date"
               render={({ field }) => (
                 <FormItem className="flex flex-col">
-                  <FormLabel>Date</FormLabel>
+                  <FormLabel id="date-label">Date</FormLabel>
                   <Popover>
                     <PopoverTrigger asChild>
                       <FormControl>
                         <Button
                           variant="outline"
                           className={cn("w-full pl-3 text-left font-normal", !field.value && "text-muted-foreground")}
+                          aria-labelledby="date-label"
                         >
                           {field.value ? format(field.value, "PPP") : <span>Pick a date</span>}
-                          <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                          <CalendarIcon className="ml-auto h-4 w-4 opacity-50" aria-hidden="true" />
                         </Button>
                       </FormControl>
                     </PopoverTrigger>
@@ -164,6 +168,7 @@ export default function NewEntryDialog({ onOpenChange, onSave, entries, selected
                         onSelect={handleDateChange}
                         disabled={(date) => isFuture(date)}
                         initialFocus
+                        aria-label="Select date"
                       />
                     </PopoverContent>
                   </Popover>
@@ -177,9 +182,13 @@ export default function NewEntryDialog({ onOpenChange, onSave, entries, selected
               name="mood"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Mood Level</FormLabel>
+                  <FormLabel id="mood-label">Mood Level</FormLabel>
                   <FormControl>
-                    <MoodSelector selectedMood={field.value} onSelectMood={(mood) => field.onChange(mood)} />
+                    <MoodSelector
+                      selectedMood={field.value}
+                      onSelectMood={(mood) => field.onChange(mood)}
+                      aria-labelledby="mood-label"
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -191,9 +200,10 @@ export default function NewEntryDialog({ onOpenChange, onSave, entries, selected
               name="notes"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Note (Optional)</FormLabel>
+                  <FormLabel htmlFor="notes">Note (Optional)</FormLabel>
                   <FormControl>
                     <Textarea
+                      id="notes"
                       placeholder="Write a short note about your day..."
                       {...field}
                       value={field.value || ""}

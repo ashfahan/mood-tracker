@@ -23,13 +23,19 @@ import {
   formatWeekdayChartData,
   calculateDaysTrackedPercentage,
 } from "@/utils/mood-utils"
+import { useMediaQuery } from "@/hooks/use-media-query"
+import { useTheme } from "next-themes"
 
 // Custom tooltip component for Nivo charts
 const ChartTooltip = ({ point }: any) => {
   const moodValue = Math.round(point.data.y)
+  const { theme } = useTheme()
+  const isDark = theme === "dark"
 
   return (
-    <div className="bg-white p-2 shadow-md rounded-md border text-sm">
+    <div
+      className={`${isDark ? "bg-gray-800 text-white" : "bg-white text-gray-800"} p-2 shadow-md rounded-md border text-sm`}
+    >
       <div className="font-medium">{point.data.x}</div>
       <div className="flex items-center gap-2">
         <span>Mood: {typeof point.data.y === "number" ? point.data.y.toFixed(2) : point.data.y}</span>
@@ -68,212 +74,301 @@ const StatsCard = ({ title, value, icon, subtitle, children }: StatsCardProps) =
 // Daily Mood Chart Component
 interface DailyMoodChartProps {
   data: any[]
+  isMobile: boolean
+  timeRange: string
 }
 
-const DailyMoodChart = ({ data }: DailyMoodChartProps) => (
-  <div className="h-full w-full">
-    <ResponsiveLine
-      data={data}
-      margin={{ top: 50, right: 50, bottom: 70, left: 60 }}
-      xScale={{ type: "point" }}
-      yScale={{
-        type: "linear",
-        min: 1,
-        max: 5,
-        stacked: false,
-        reverse: false,
-      }}
-      curve="monotoneX"
-      axisTop={null}
-      axisRight={null}
-      axisBottom={{
-        tickSize: 5,
-        tickPadding: 5,
-        tickRotation: -45,
-        legend: "Date",
-        legendOffset: 55,
-        legendPosition: "middle",
-      }}
-      axisLeft={{
-        tickSize: 5,
-        tickPadding: 5,
-        tickRotation: 0,
-        tickValues: [1, 2, 3, 4, 5],
-        legend: "Mood Level",
-        legendOffset: -40,
-        legendPosition: "middle",
-      }}
-      colors={{ scheme: "category10" }}
-      pointSize={10}
-      pointColor={{ theme: "background" }}
-      pointBorderWidth={2}
-      pointBorderColor={{ from: "serieColor" }}
-      pointLabelYOffset={-12}
-      useMesh={true}
-      gridYValues={[1, 2, 3, 4, 5]}
-      tooltip={ChartTooltip}
-      theme={{
-        axis: {
-          ticks: {
-            text: {
+const DailyMoodChart = ({ data, isMobile, timeRange }: DailyMoodChartProps) => {
+  const { theme } = useTheme()
+  const isDark = theme === "dark"
+
+  // Determine how many ticks to show based on screen size and time range
+  const getTickValues = () => {
+    if (isMobile) {
+      if (timeRange === "90") {
+        // For 90 days on mobile, show only every ~15th day
+        return data[0].data.filter((_: any, i: number) => i % 15 === 0).map((d: any) => d.x)
+      } else if (timeRange === "30") {
+        // For 30 days on mobile, show only every ~5th day
+        return data[0].data.filter((_: any, i: number) => i % 5 === 0).map((d: any) => d.x)
+      }
+    }
+    // Default: show all ticks or a reasonable number for other cases
+    return undefined // Let Nivo decide
+  }
+
+  return (
+    <div className="h-full w-full">
+      <ResponsiveLine
+        data={data}
+        margin={{ top: 50, right: 50, bottom: isMobile ? 80 : 70, left: 60 }}
+        xScale={{ type: "point" }}
+        yScale={{
+          type: "linear",
+          min: 1,
+          max: 5,
+          stacked: false,
+          reverse: false,
+        }}
+        curve="monotoneX"
+        axisTop={null}
+        axisRight={null}
+        axisBottom={{
+          tickSize: 5,
+          tickPadding: 5,
+          tickRotation: isMobile ? -45 : -30,
+          legend: "Date",
+          legendOffset: 55,
+          legendPosition: "middle",
+          tickValues: getTickValues(),
+          tickColor: isDark ? "#ffffff" : "#333333",
+          legendColor: isDark ? "#ffffff" : "#333333",
+        }}
+        axisLeft={{
+          tickSize: 5,
+          tickPadding: 5,
+          tickRotation: 0,
+          tickValues: [1, 2, 3, 4, 5],
+          legend: "Mood Level",
+          legendOffset: -40,
+          legendPosition: "middle",
+          tickColor: isDark ? "#ffffff" : "#333333",
+          legendColor: isDark ? "#ffffff" : "#333333",
+        }}
+        enableGridX={false}
+        colors={{ scheme: "category10" }}
+        pointSize={isMobile ? 6 : 10}
+        pointColor={{ theme: "background" }}
+        pointBorderWidth={2}
+        pointBorderColor={{ from: "serieColor" }}
+        pointLabelYOffset={-12}
+        useMesh={true}
+        gridYValues={[1, 2, 3, 4, 5]}
+        tooltip={ChartTooltip}
+        theme={{
+          axis: {
+            domain: {
+              line: {
+                stroke: isDark ? "#888888" : "#777777",
+                strokeWidth: 1,
+              },
+            },
+            ticks: {
+              line: {
+                stroke: isDark ? "#888888" : "#777777",
+                strokeWidth: 1,
+              },
+              text: {
+                fill: isDark ? "#ffffff" : "#333333",
+                fontSize: 12,
+              },
+            },
+            legend: {
+              text: {
+                fill: isDark ? "#ffffff" : "#333333",
+                fontSize: 14,
+                fontWeight: "bold",
+              },
+            },
+          },
+          grid: {
+            line: {
+              stroke: isDark ? "#444444" : "#e0e0e0",
+              strokeWidth: 1,
+            },
+          },
+          crosshair: {
+            line: {
+              stroke: isDark ? "#ffffff" : "#b0b0b0",
+              strokeWidth: 1,
+              strokeOpacity: 0.5,
+            },
+          },
+          tooltip: {
+            container: {
+              background: isDark ? "#1f2937" : "#ffffff",
+              color: isDark ? "#ffffff" : "#333333",
               fontSize: 12,
             },
           },
-          legend: {
+          legends: {
             text: {
-              fontSize: 14,
-              fontWeight: "bold",
+              fill: isDark ? "#ffffff" : "#333333",
+              fontSize: 12,
             },
           },
-        },
-        grid: {
-          line: {
-            stroke: "#e0e0e0",
-            strokeWidth: 1,
-          },
-        },
-        crosshair: {
-          line: {
-            stroke: "#b0b0b0",
-            strokeWidth: 1,
-            strokeOpacity: 0.5,
-          },
-        },
-      }}
-      legends={[
-        {
-          anchor: "top",
-          direction: "row",
-          justify: false,
-          translateX: 0,
-          translateY: -30,
-          itemsSpacing: 0,
-          itemDirection: "left-to-right",
-          itemWidth: 100,
-          itemHeight: 20,
-          itemOpacity: 0.75,
-          symbolSize: 12,
-          symbolShape: "circle",
-          symbolBorderColor: "rgba(0, 0, 0, .5)",
-          effects: [
-            {
-              on: "hover",
-              style: {
-                itemBackground: "rgba(0, 0, 0, .03)",
-                itemOpacity: 1,
+        }}
+        legends={[
+          {
+            anchor: "top",
+            direction: "row",
+            justify: false,
+            translateX: 0,
+            translateY: -30,
+            itemsSpacing: 0,
+            itemDirection: "left-to-right",
+            itemWidth: 100,
+            itemHeight: 20,
+            itemOpacity: 0.75,
+            symbolSize: 12,
+            symbolShape: "circle",
+            symbolBorderColor: isDark ? "rgba(255, 255, 255, .5)" : "rgba(0, 0, 0, .5)",
+            effects: [
+              {
+                on: "hover",
+                style: {
+                  itemBackground: isDark ? "rgba(255, 255, 255, .03)" : "rgba(0, 0, 0, .03)",
+                  itemOpacity: 1,
+                },
               },
-            },
-          ],
-        },
-      ]}
-    />
-  </div>
-)
+            ],
+          },
+        ]}
+      />
+    </div>
+  )
+}
 
 // Weekday Mood Chart Component
 interface WeekdayMoodChartProps {
   data: any[]
+  isMobile: boolean
 }
 
-const WeekdayMoodChart = ({ data }: WeekdayMoodChartProps) => (
-  <div className="h-full w-full">
-    <ResponsiveLine
-      data={data}
-      margin={{ top: 50, right: 50, bottom: 70, left: 60 }}
-      xScale={{ type: "point" }}
-      yScale={{
-        type: "linear",
-        min: 1,
-        max: 5,
-        stacked: false,
-        reverse: false,
-      }}
-      curve="monotoneX"
-      axisTop={null}
-      axisRight={null}
-      axisBottom={{
-        tickSize: 5,
-        tickPadding: 5,
-        tickRotation: 0,
-        legend: "Day of Week",
-        legendOffset: 40,
-        legendPosition: "middle",
-      }}
-      axisLeft={{
-        tickSize: 5,
-        tickPadding: 5,
-        tickRotation: 0,
-        tickValues: [1, 2, 3, 4, 5],
-        legend: "Average Mood",
-        legendOffset: -40,
-        legendPosition: "middle",
-      }}
-      colors={{ scheme: "category10" }}
-      pointSize={10}
-      pointColor={{ theme: "background" }}
-      pointBorderWidth={2}
-      pointBorderColor={{ from: "serieColor" }}
-      pointLabelYOffset={-12}
-      useMesh={true}
-      gridYValues={[1, 2, 3, 4, 5]}
-      tooltip={ChartTooltip}
-      theme={{
-        axis: {
-          ticks: {
-            text: {
+const WeekdayMoodChart = ({ data, isMobile }: WeekdayMoodChartProps) => {
+  const { theme } = useTheme()
+  const isDark = theme === "dark"
+
+  return (
+    <div className="h-full w-full">
+      <ResponsiveLine
+        data={data}
+        margin={{ top: 50, right: 50, bottom: 70, left: 60 }}
+        xScale={{ type: "point" }}
+        yScale={{
+          type: "linear",
+          min: 1,
+          max: 5,
+          stacked: false,
+          reverse: false,
+        }}
+        curve="monotoneX"
+        axisTop={null}
+        axisRight={null}
+        axisBottom={{
+          tickSize: 5,
+          tickPadding: 5,
+          tickRotation: 0,
+          legend: "Day of Week",
+          legendOffset: 40,
+          legendPosition: "middle",
+          tickColor: isDark ? "#ffffff" : "#333333",
+          legendColor: isDark ? "#ffffff" : "#333333",
+        }}
+        axisLeft={{
+          tickSize: 5,
+          tickPadding: 5,
+          tickRotation: 0,
+          tickValues: [1, 2, 3, 4, 5],
+          legend: "Average Mood",
+          legendOffset: -40,
+          legendPosition: "middle",
+          tickColor: isDark ? "#ffffff" : "#333333",
+          legendColor: isDark ? "#ffffff" : "#333333",
+        }}
+        enableGridX={false}
+        colors={{ scheme: "category10" }}
+        pointSize={isMobile ? 8 : 10}
+        pointColor={{ theme: "background" }}
+        pointBorderWidth={2}
+        pointBorderColor={{ from: "serieColor" }}
+        pointLabelYOffset={-12}
+        useMesh={true}
+        gridYValues={[1, 2, 3, 4, 5]}
+        tooltip={ChartTooltip}
+        theme={{
+          axis: {
+            domain: {
+              line: {
+                stroke: isDark ? "#888888" : "#777777",
+                strokeWidth: 1,
+              },
+            },
+            ticks: {
+              line: {
+                stroke: isDark ? "#888888" : "#777777",
+                strokeWidth: 1,
+              },
+              text: {
+                fill: isDark ? "#ffffff" : "#333333",
+                fontSize: 12,
+              },
+            },
+            legend: {
+              text: {
+                fill: isDark ? "#ffffff" : "#333333",
+                fontSize: 14,
+                fontWeight: "bold",
+              },
+            },
+          },
+          grid: {
+            line: {
+              stroke: isDark ? "#444444" : "#e0e0e0",
+              strokeWidth: 1,
+            },
+          },
+          crosshair: {
+            line: {
+              stroke: isDark ? "#ffffff" : "#b0b0b0",
+              strokeWidth: 1,
+              strokeOpacity: 0.5,
+            },
+          },
+          tooltip: {
+            container: {
+              background: isDark ? "#1f2937" : "#ffffff",
+              color: isDark ? "#ffffff" : "#333333",
               fontSize: 12,
             },
           },
-          legend: {
+          legends: {
             text: {
-              fontSize: 14,
-              fontWeight: "bold",
+              fill: isDark ? "#ffffff" : "#333333",
+              fontSize: 12,
             },
           },
-        },
-        grid: {
-          line: {
-            stroke: "#e0e0e0",
-            strokeWidth: 1,
-          },
-        },
-        crosshair: {
-          line: {
-            stroke: "#b0b0b0",
-            strokeWidth: 1,
-            strokeOpacity: 0.5,
-          },
-        },
-      }}
-      legends={[
-        {
-          anchor: "top",
-          direction: "row",
-          justify: false,
-          translateX: 0,
-          translateY: -30,
-          itemsSpacing: 0,
-          itemDirection: "left-to-right",
-          itemWidth: 100,
-          itemHeight: 20,
-          itemOpacity: 0.75,
-          symbolSize: 12,
-          symbolShape: "circle",
-          symbolBorderColor: "rgba(0, 0, 0, .5)",
-          effects: [
-            {
-              on: "hover",
-              style: {
-                itemBackground: "rgba(0, 0, 0, .03)",
-                itemOpacity: 1,
+        }}
+        legends={[
+          {
+            anchor: "top",
+            direction: "row",
+            justify: false,
+            translateX: 0,
+            translateY: -30,
+            itemsSpacing: 0,
+            itemDirection: "left-to-right",
+            itemWidth: 100,
+            itemHeight: 20,
+            itemOpacity: 0.75,
+            symbolSize: 12,
+            symbolShape: "circle",
+            symbolBorderColor: isDark ? "rgba(255, 255, 255, .5)" : "rgba(0, 0, 0, .5)",
+            effects: [
+              {
+                on: "hover",
+                style: {
+                  itemBackground: isDark ? "rgba(255, 255, 255, .03)" : "rgba(0, 0, 0, .03)",
+                  itemOpacity: 1,
+                },
               },
-            },
-          ],
-        },
-      ]}
-    />
-  </div>
-)
+            ],
+          },
+        ]}
+      />
+    </div>
+  )
+}
 
 // Date Range Selector Component
 interface DateRangeSelectorProps {
@@ -339,7 +434,7 @@ const DateRangeSelector = ({
           size="sm"
           className="gap-2"
         >
-          <Calendar className="h-4 w-4" />
+          <Calendar className="h-4 w-4" aria-hidden="true" />
           Custom Range
         </Button>
       </PopoverTrigger>
@@ -381,6 +476,12 @@ export default function MoodAnalytics({ entries }: MoodAnalyticsProps) {
   const [startDate, setStartDate] = useState<Date>(subDays(new Date(), 30))
   const [endDate, setEndDate] = useState<Date>(new Date())
   const [activeChart, setActiveChart] = useState<"daily" | "weekly">("daily")
+
+  // Check if screen is mobile
+  const isMobile = useMediaQuery("(max-width: 768px)")
+
+  // Get theme
+  const { theme } = useTheme()
 
   // Calculate date range based on selected time range
   const dateRange = useMemo(() => {
@@ -488,7 +589,7 @@ export default function MoodAnalytics({ entries }: MoodAnalyticsProps) {
         <StatsCard
           title="Average Mood"
           value={averageMood}
-          icon={<TrendingUp className="h-4 w-4 text-muted-foreground" />}
+          icon={<TrendingUp className="h-4 w-4 text-muted-foreground" aria-hidden="true" />}
           subtitle={`From ${format(dateRange.start, "MMM dd, yyyy")} to ${format(dateRange.end, "MMM dd, yyyy")}`}
         />
 
@@ -509,7 +610,7 @@ export default function MoodAnalytics({ entries }: MoodAnalyticsProps) {
         <StatsCard
           title="Total Entries"
           value={filteredEntries.length}
-          icon={<BarChart3 className="h-4 w-4 text-muted-foreground" />}
+          icon={<BarChart3 className="h-4 w-4 text-muted-foreground" aria-hidden="true" />}
           subtitle={
             filteredEntries.length > 0 ? `${daysTrackedPercentage}% of days tracked` : "No entries in selected range"
           }
@@ -563,9 +664,9 @@ export default function MoodAnalytics({ entries }: MoodAnalyticsProps) {
                 <p className="text-muted-foreground">No weekday data available for the selected time range</p>
               </div>
             ) : activeChart === "daily" ? (
-              <DailyMoodChart data={nivoLineData} />
+              <DailyMoodChart data={nivoLineData} isMobile={isMobile} timeRange={timeRange} />
             ) : (
-              <WeekdayMoodChart data={nivoWeekdayData} />
+              <WeekdayMoodChart data={nivoWeekdayData} isMobile={isMobile} />
             )}
           </div>
         </CardContent>

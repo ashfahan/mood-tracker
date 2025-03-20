@@ -30,10 +30,10 @@ export default function MoodHistory({ entries, onEntryClick = () => {}, onDelete
   })
 
   return (
-    <div>
+    <section aria-label="Mood history">
       {Object.keys(groupedEntries).length === 0 ? (
         <div className="text-center py-12 border rounded-lg">
-          <Calendar className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+          <Calendar className="h-12 w-12 mx-auto text-muted-foreground mb-4" aria-hidden="true" />
           <h3 className="text-lg font-medium mb-2">No entries yet</h3>
           <p className="text-muted-foreground">Start tracking your mood by adding an entry.</p>
         </div>
@@ -41,54 +41,70 @@ export default function MoodHistory({ entries, onEntryClick = () => {}, onDelete
         <div className="space-y-8">
           {Object.entries(groupedEntries).map(([monthYear, monthEntries]) => (
             <div key={monthYear} className="space-y-4">
-              <h3 className="text-lg font-medium sticky top-0 bg-white py-2">{monthYear}</h3>
+              <h3 className="text-lg font-medium sticky top-0 bg-white dark:bg-gray-900 py-2">{monthYear}</h3>
               <div className="space-y-4">
-                {monthEntries.map((entry, index) => (
-                  <Card key={index} className="overflow-hidden hover:shadow-md transition-shadow">
-                    <div className={`h-1 ${MOOD_COLORS[entry.mood].split(" ")[0]}`} />
-                    <CardHeader className="p-4 pb-2">
-                      <div className="flex justify-between items-start">
-                        <div className="flex items-center gap-2 cursor-pointer" onClick={() => onEntryClick(entry)}>
-                          <Calendar className="h-4 w-4 text-muted-foreground" />
-                          <span className="font-medium">{format(new Date(entry.date), "EEEE, MMMM d, yyyy")}</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <Badge className={MOOD_COLORS[entry.mood]}>
-                            <div className="flex items-center gap-1">
-                              {MOOD_ICONS_SMALL[entry.mood]}
-                              <span>{MOOD_LABELS[entry.mood]}</span>
-                            </div>
-                          </Badge>
+                {monthEntries.map((entry, index) => {
+                  const entryDate = new Date(entry.date)
+                  const formattedDate = format(entryDate, "EEEE, MMMM d, yyyy")
+
+                  return (
+                    <Card key={index} className="overflow-hidden hover:shadow-md transition-shadow">
+                      <div className={`h-1 ${MOOD_COLORS[entry.mood].split(" ")[0]}`} />
+                      <CardHeader className="p-4 pb-2">
+                        <div className="flex justify-between items-start">
                           <Button
                             variant="ghost"
-                            size="icon"
-                            className="h-8 w-8 text-destructive hover:bg-destructive/10"
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              onDeleteEntry(entry)
-                            }}
+                            className="flex items-center gap-2 p-0 h-auto font-normal hover:bg-transparent"
+                            onClick={() => onEntryClick(entry)}
+                            aria-label={`Edit entry for ${formattedDate}`}
                           >
-                            <Trash2 className="h-4 w-4" />
+                            <Calendar className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
+                            <span className="font-medium">{formattedDate}</span>
                           </Button>
+                          <div className="flex items-center gap-2">
+                            <Badge className={MOOD_COLORS[entry.mood]}>
+                              <div className="flex items-center gap-1">
+                                {MOOD_ICONS_SMALL[entry.mood]}
+                                <span>{MOOD_LABELS[entry.mood]}</span>
+                              </div>
+                            </Badge>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 text-destructive hover:bg-destructive/10"
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                onDeleteEntry(entry)
+                              }}
+                              aria-label={`Delete entry for ${formattedDate}`}
+                            >
+                              <Trash2 className="h-4 w-4" aria-hidden="true" />
+                            </Button>
+                          </div>
                         </div>
-                      </div>
-                    </CardHeader>
-                    {entry.notes && (
-                      <CardContent className="p-4 pt-2 cursor-pointer" onClick={() => onEntryClick(entry)}>
-                        <div className="flex items-start gap-2 text-sm text-muted-foreground">
-                          <FileText className="h-4 w-4 mt-0.5 flex-shrink-0" />
-                          <p className="whitespace-pre-wrap">{entry.notes}</p>
-                        </div>
-                      </CardContent>
-                    )}
-                  </Card>
-                ))}
+                      </CardHeader>
+                      {entry.notes && (
+                        <CardContent className="p-4 pt-2">
+                          <Button
+                            variant="ghost"
+                            className="flex items-start gap-2 text-sm text-muted-foreground p-0 h-auto w-full justify-start font-normal hover:bg-transparent"
+                            onClick={() => onEntryClick(entry)}
+                            aria-label={`View and edit notes for ${formattedDate}`}
+                          >
+                            <FileText className="h-4 w-4 mt-0.5 flex-shrink-0" aria-hidden="true" />
+                            <p className="whitespace-pre-wrap text-left">{entry.notes}</p>
+                          </Button>
+                        </CardContent>
+                      )}
+                    </Card>
+                  )
+                })}
               </div>
             </div>
           ))}
         </div>
       )}
-    </div>
+    </section>
   )
 }
 

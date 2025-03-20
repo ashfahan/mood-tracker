@@ -107,15 +107,22 @@ export default function SeedData({
   }
 
   return (
-    <Button variant={buttonVariant} onClick={generateSeedData} disabled={isSeeding} className={className}>
+    <Button
+      variant={buttonVariant}
+      onClick={generateSeedData}
+      disabled={isSeeding}
+      className={className}
+      aria-label="Generate sample mood data"
+    >
       {isSeeding ? (
         <>
-          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-          Generating Data...
+          <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" />
+          <span>Generating Data...</span>
+          <span className="sr-only">Please wait while sample data is being generated</span>
         </>
       ) : (
         <>
-          {buttonIcon}
+          {buttonIcon && <span aria-hidden="true">{buttonIcon}</span>}
           {buttonText}
         </>
       )}
