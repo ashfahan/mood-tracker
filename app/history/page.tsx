@@ -6,22 +6,18 @@ import { HeaderActions } from "@/components/header-actions"
 export default function HistoryPage() {
   return (
     <div className="space-y-6">
-      <div className="flex flex-col space-y-4">
-        <div className="flex justify-between items-center">
-          <Tabs defaultValue="history" className="w-full">
-            <div className="flex justify-between items-center">
-              <TabsList>
-                <TabsTrigger value="analytics" asChild>
-                  <Link href="/analytics">Analytics</Link>
-                </TabsTrigger>
-                <TabsTrigger value="history" asChild>
-                  <Link href="/history">History</Link>
-                </TabsTrigger>
-              </TabsList>
-              <HeaderActions initialTab="history" />
-            </div>
-          </Tabs>
-        </div>
+      <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
+        <Tabs defaultValue="history" className="w-full sm:w-auto">
+          <TabsList className="w-full sm:w-auto">
+            <TabsTrigger value="analytics" asChild className="flex-1 sm:flex-none">
+              <Link href="/analytics">Analytics</Link>
+            </TabsTrigger>
+            <TabsTrigger value="history" asChild className="flex-1 sm:flex-none">
+              <Link href="/history">History</Link>
+            </TabsTrigger>
+          </TabsList>
+        </Tabs>
+        <HeaderActions initialTab="history" />
       </div>
       <MoodTracker initialTab="history" />
     </div>

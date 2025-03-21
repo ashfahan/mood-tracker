@@ -51,15 +51,15 @@ export default function MoodHistory({ entries, onEntryClick = () => {}, onDelete
                     <Card key={index} className="overflow-hidden hover:shadow-md transition-shadow">
                       <div className={`h-1 ${MOOD_COLORS[entry.mood].split(" ")[0]}`} />
                       <CardHeader className="p-4 pb-2">
-                        <div className="flex justify-between items-start">
+                        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-2">
                           <Button
                             variant="ghost"
-                            className="flex items-center gap-2 p-0 h-auto font-normal hover:bg-transparent"
+                            className="flex items-center gap-2 p-0 h-auto font-normal hover:bg-transparent justify-start"
                             onClick={() => onEntryClick(entry)}
                             aria-label={`Edit entry for ${formattedDate}`}
                           >
-                            <Calendar className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
-                            <span className="font-medium">{formattedDate}</span>
+                            <Calendar className="h-4 w-4 text-muted-foreground flex-shrink-0" aria-hidden="true" />
+                            <span className="font-medium text-left">{formattedDate}</span>
                           </Button>
                           <div className="flex items-center gap-2">
                             <Badge className={MOOD_COLORS[entry.mood]}>

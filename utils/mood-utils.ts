@@ -4,7 +4,7 @@ import type { MoodLevel } from "@/constants/mood"
 
 // Calculate average mood from entries
 export function calculateAverageMood(entries: MoodEntry[]): string {
-  if (entries.length === 0) return "N/A"
+  if (entries.length === 0) return "No data"
   const sum = entries.reduce((acc, entry) => acc + entry.mood, 0)
   return (sum / entries.length).toFixed(1)
 }

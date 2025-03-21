@@ -1,7 +1,6 @@
 "use client"
 
 import type React from "react"
-
 import type { MoodEntry } from "@/types/mood"
 import { format, subDays, differenceInDays, isSameDay } from "date-fns"
 import { useState, useMemo } from "react"
@@ -25,12 +24,14 @@ import {
 } from "@/utils/mood-utils"
 import { useMediaQuery } from "@/hooks/use-media-query"
 import { useTheme } from "next-themes"
+import ClientOnly from "./client-only"
+import type { DateRange } from "react-day-picker"
 
 // Custom tooltip component for Nivo charts
 const ChartTooltip = ({ point }: any) => {
-  const moodValue = Math.round(point.data.y)
   const { theme } = useTheme()
   const isDark = theme === "dark"
+  const moodValue = Math.round(point.data.y)
 
   return (
     <div
@@ -85,12 +86,12 @@ const DailyMoodChart = ({ data, isMobile, timeRange }: DailyMoodChartProps) => {
   // Determine how many ticks to show based on screen size and time range
   const getTickValues = () => {
     if (isMobile) {
-      if (timeRange === "90") {
-        // For 90 days on mobile, show only every ~15th day
-        return data[0].data.filter((_: any, i: number) => i % 15 === 0).map((d: any) => d.x)
-      } else if (timeRange === "30") {
+      if (timeRange === "30") {
         // For 30 days on mobile, show only every ~5th day
         return data[0].data.filter((_: any, i: number) => i % 5 === 0).map((d: any) => d.x)
+      } else if (timeRange === "15") {
+        // For 15 days on mobile, show only every ~3rd day
+        return data[0].data.filter((_: any, i: number) => i % 3 === 0).map((d: any) => d.x)
       }
     }
     // Default: show all ticks or a reasonable number for other cases
@@ -373,7 +374,7 @@ const WeekdayMoodChart = ({ data, isMobile }: WeekdayMoodChartProps) => {
 // Date Range Selector Component
 interface DateRangeSelectorProps {
   timeRange: string
-  setTimeRange: (range: "7" | "30" | "90" | "custom") => void
+  setTimeRange: (range: "7" | "15" | "30" | "custom") => void
   startDate: Date
   setStartDate: (date: Date) => void
   endDate: Date
@@ -391,80 +392,103 @@ const DateRangeSelector = ({
   setEndDate,
   isCustomRangeMatchingPreset,
   handleDateRangeChange,
-}: DateRangeSelectorProps) => (
-  <div className="flex flex-wrap gap-2">
-    <Button
-      variant={timeRange === "7" ? "default" : "outline"}
-      size="sm"
-      onClick={() => {
-        setTimeRange("7")
-        setStartDate(subDays(new Date(), 7))
-        setEndDate(new Date())
-      }}
-    >
-      7 Days
-    </Button>
-    <Button
-      variant={timeRange === "30" ? "default" : "outline"}
-      size="sm"
-      onClick={() => {
-        setTimeRange("30")
-        setStartDate(subDays(new Date(), 30))
-        setEndDate(new Date())
-      }}
-    >
-      30 Days
-    </Button>
-    <Button
-      variant={timeRange === "90" ? "default" : "outline"}
-      size="sm"
-      onClick={() => {
-        setTimeRange("90")
-        setStartDate(subDays(new Date(), 90))
-        setEndDate(new Date())
-      }}
-    >
-      90 Days
-    </Button>
+}: DateRangeSelectorProps) => {
+  const [date, setDate] = useState<DateRange | undefined>({
+    from: startDate,
+    to: endDate,
+  })
 
-    <Popover>
-      <PopoverTrigger asChild>
+  // Handle date range selection
+  const handleCalendarSelect = (range: DateRange | undefined) => {
+    if (range?.from && range?.to) {
+      setDate(range)
+      handleDateRangeChange(range.from, range.to)
+    } else if (range?.from) {
+      setDate({ ...range })
+    }
+  }
+
+  return (
+    <div className="flex flex-wrap gap-2">
+      <div className="grid grid-cols-3 gap-2 w-full sm:w-auto">
         <Button
-          variant={timeRange === "custom" && !isCustomRangeMatchingPreset ? "default" : "outline"}
+          variant={timeRange === "7" ? "default" : "outline"}
           size="sm"
-          className="gap-2"
+          className="text-xs sm:text-sm"
+          onClick={() => {
+            setTimeRange("7")
+            setStartDate(subDays(new Date(), 7))
+            setEndDate(new Date())
+            setDate({
+              from: subDays(new Date(), 7),
+              to: new Date(),
+            })
+          }}
         >
-          <Calendar className="h-4 w-4" aria-hidden="true" />
-          Custom Range
+          7 Days
         </Button>
-      </PopoverTrigger>
-      <PopoverContent className="w-auto p-0" align="end">
-        <div className="flex flex-col sm:flex-row">
-          <div className="border-b sm:border-b-0 sm:border-r p-2">
-            <div className="px-3 py-2 text-sm font-medium">Start Date</div>
+        <Button
+          variant={timeRange === "15" ? "default" : "outline"}
+          size="sm"
+          className="text-xs sm:text-sm"
+          onClick={() => {
+            setTimeRange("15")
+            setStartDate(subDays(new Date(), 15))
+            setEndDate(new Date())
+            setDate({
+              from: subDays(new Date(), 15),
+              to: new Date(),
+            })
+          }}
+        >
+          15 Days
+        </Button>
+        <Button
+          variant={timeRange === "30" ? "default" : "outline"}
+          size="sm"
+          className="text-xs sm:text-sm"
+          onClick={() => {
+            setTimeRange("30")
+            setStartDate(subDays(new Date(), 30))
+            setEndDate(new Date())
+            setDate({
+              from: subDays(new Date(), 30),
+              to: new Date(),
+            })
+          }}
+        >
+          30 Days
+        </Button>
+      </div>
+
+      <Popover>
+        <PopoverTrigger asChild>
+          <Button
+            variant={timeRange === "custom" && !isCustomRangeMatchingPreset ? "default" : "outline"}
+            size="sm"
+            className="gap-2 text-xs sm:text-sm w-full sm:w-auto"
+          >
+            <Calendar className="h-4 w-4" aria-hidden="true" />
+            Custom Range
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent className="w-auto p-4" align="end">
+          <div className="space-y-2">
+            <div className="text-sm font-medium">Select Date Range</div>
             <CalendarComponent
-              mode="single"
-              selected={startDate}
-              onSelect={(date) => date && handleDateRangeChange(date, endDate)}
-              disabled={(date) => date > endDate || date > new Date()}
+              mode="range"
+              selected={date}
+              onSelect={handleCalendarSelect}
+              disabled={(date) => date > new Date()}
               initialFocus
+              numberOfMonths={1}
             />
           </div>
-          <div className="p-2">
-            <div className="px-3 py-2 text-sm font-medium">End Date</div>
-            <CalendarComponent
-              mode="single"
-              selected={endDate}
-              onSelect={(date) => date && handleDateRangeChange(startDate, date)}
-              disabled={(date) => date < startDate || date > new Date()}
-              initialFocus
-            />
-          </div>
-        </div>
-      </PopoverContent>
-    </Popover>
-  </div>
-)
+        </PopoverContent>
+      </Popover>
+    </div>
+  )
+}
 
 // Main MoodAnalytics Component
 interface MoodAnalyticsProps {
@@ -472,16 +496,13 @@ interface MoodAnalyticsProps {
 }
 
 export default function MoodAnalytics({ entries }: MoodAnalyticsProps) {
-  const [timeRange, setTimeRange] = useState<"7" | "30" | "90" | "custom">("30")
+  const [timeRange, setTimeRange] = useState<"7" | "15" | "30" | "custom">("30")
   const [startDate, setStartDate] = useState<Date>(subDays(new Date(), 30))
   const [endDate, setEndDate] = useState<Date>(new Date())
   const [activeChart, setActiveChart] = useState<"daily" | "weekly">("daily")
 
   // Check if screen is mobile
   const isMobile = useMediaQuery("(max-width: 768px)")
-
-  // Get theme
-  const { theme } = useTheme()
 
   // Calculate date range based on selected time range
   const dateRange = useMemo(() => {
@@ -490,14 +511,14 @@ export default function MoodAnalytics({ entries }: MoodAnalyticsProps) {
         start: subDays(new Date(), 7),
         end: new Date(),
       }
+    } else if (timeRange === "15") {
+      return {
+        start: subDays(new Date(), 15),
+        end: new Date(),
+      }
     } else if (timeRange === "30") {
       return {
         start: subDays(new Date(), 30),
-        end: new Date(),
-      }
-    } else if (timeRange === "90") {
-      return {
-        start: subDays(new Date(), 90),
         end: new Date(),
       }
     } else {
@@ -513,8 +534,8 @@ export default function MoodAnalytics({ entries }: MoodAnalyticsProps) {
     const daysDiff = differenceInDays(endDate, startDate)
     return (
       (daysDiff === 6 && isSameDay(endDate, new Date())) ||
-      (daysDiff === 29 && isSameDay(endDate, new Date())) ||
-      (daysDiff === 89 && isSameDay(endDate, new Date()))
+      (daysDiff === 14 && isSameDay(endDate, new Date())) ||
+      (daysDiff === 29 && isSameDay(endDate, new Date()))
     )
   }, [startDate, endDate])
 
@@ -574,14 +595,21 @@ export default function MoodAnalytics({ entries }: MoodAnalyticsProps) {
     const daysDiff = differenceInDays(end, start)
     if (daysDiff === 6 && isSameDay(end, new Date())) {
       setTimeRange("7")
+    } else if (daysDiff === 14 && isSameDay(end, new Date())) {
+      setTimeRange("15")
     } else if (daysDiff === 29 && isSameDay(end, new Date())) {
       setTimeRange("30")
-    } else if (daysDiff === 89 && isSameDay(end, new Date())) {
-      setTimeRange("90")
     } else {
       setTimeRange("custom")
     }
   }
+
+  // Placeholder for charts while they're loading on client
+  const chartPlaceholder = (
+    <div className="flex items-center justify-center h-full">
+      <p className="text-muted-foreground">Loading chart...</p>
+    </div>
+  )
 
   return (
     <div className="space-y-6">
@@ -664,9 +692,13 @@ export default function MoodAnalytics({ entries }: MoodAnalyticsProps) {
                 <p className="text-muted-foreground">No weekday data available for the selected time range</p>
               </div>
             ) : activeChart === "daily" ? (
-              <DailyMoodChart data={nivoLineData} isMobile={isMobile} timeRange={timeRange} />
+              <ClientOnly fallback={chartPlaceholder}>
+                <DailyMoodChart data={nivoLineData} isMobile={isMobile} timeRange={timeRange} />
+              </ClientOnly>
             ) : (
-              <WeekdayMoodChart data={nivoWeekdayData} isMobile={isMobile} />
+              <ClientOnly fallback={chartPlaceholder}>
+                <WeekdayMoodChart data={nivoWeekdayData} isMobile={isMobile} />
+              </ClientOnly>
             )}
           </div>
         </CardContent>

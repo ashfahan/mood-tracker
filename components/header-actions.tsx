@@ -7,14 +7,14 @@ import { ThemeToggle } from "@/components/theme-toggle"
 import SeedData from "./seed-data"
 import NewEntryDialog from "./new-entry-dialog"
 import type { MoodEntry } from "@/types/mood"
-import { useLocalStorage } from "@/hooks/use-local-storage"
+import { useMood } from "@/contexts/mood-context"
 
 interface HeaderActionsProps {
   initialTab: "analytics" | "history"
 }
 
 export function HeaderActions({ initialTab }: HeaderActionsProps) {
-  const [moodEntries, setMoodEntries] = useLocalStorage<MoodEntry[]>("moodEntries", [])
+  const { moodEntries, setMoodEntries, addOrUpdateEntry } = useMood()
   const [isDialogOpen, setIsDialogOpen] = useState(false)
 
   const handleSeedData = (seedEntries: MoodEntry[]) => {
@@ -26,38 +26,22 @@ export function HeaderActions({ initialTab }: HeaderActionsProps) {
   }
 
   const handleSaveEntry = (entry: MoodEntry) => {
-    const dateStr = new Date(entry.date).toDateString()
-
-    // Check if an entry already exists for this date
-    const existingEntryIndex = moodEntries.findIndex((e) => new Date(e.date).toDateString() === dateStr)
-
-    if (existingEntryIndex >= 0) {
-      // Update existing entry
-      const updatedEntries = [...moodEntries]
-      updatedEntries[existingEntryIndex] = entry
-      setMoodEntries(updatedEntries)
-    } else {
-      // Add new entry
-      setMoodEntries([...moodEntries, entry])
-    }
-
-    // Close dialog
+    addOrUpdateEntry(entry)
     setIsDialogOpen(false)
   }
 
   return (
-    <div className="flex items-center gap-2">
-      {moodEntries.length === 0 && (
-        <SeedData
-          onSeedComplete={handleSeedData}
-          buttonVariant="outline"
-          buttonIcon={<Database className="h-4 w-4 mr-2" aria-hidden="true" />}
-          buttonText="Generate Sample Data"
-        />
-      )}
-      <Button onClick={handleNewEntry} className="gap-2">
+    <div className="flex items-center gap-2 w-full sm:w-auto justify-between sm:justify-end">
+      <SeedData
+        onSeedComplete={handleSeedData}
+        buttonVariant="outline"
+        buttonIcon={<Database className="h-4 w-4 mr-2" aria-hidden="true" />}
+        buttonText="Generate Sample Data"
+        className="text-xs sm:text-sm"
+      />
+      <Button onClick={handleNewEntry} className="gap-2 text-xs sm:text-sm">
         <PlusCircle className="h-4 w-4" aria-hidden="true" />
-        New Entry
+        <span>New Entry</span>
       </Button>
       <ThemeToggle />
 

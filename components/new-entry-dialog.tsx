@@ -43,7 +43,13 @@ const formSchema = z.object({
 })
 
 export default function NewEntryDialog({ onOpenChange, onSave, entries, selectedEntry = null }: NewEntryDialogProps) {
-  const [selectedDate, setSelectedDate] = useState<Date>(new Date())
+  const [selectedDate, setSelectedDate] = useState<Date | null>(null)
+
+  // Initialize dates on client-side only
+  useEffect(() => {
+    setSelectedDate(new Date())
+  }, [])
+
   const [isEditing, setIsEditing] = useState(false)
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -57,6 +63,8 @@ export default function NewEntryDialog({ onOpenChange, onSave, entries, selected
 
   // Initialize form based on selectedEntry
   useEffect(() => {
+    if (!selectedDate) return
+
     if (selectedEntry) {
       const entryDate = new Date(selectedEntry.date)
       form.reset({
@@ -67,7 +75,7 @@ export default function NewEntryDialog({ onOpenChange, onSave, entries, selected
       setSelectedDate(entryDate)
       setIsEditing(true)
     } else {
-      const today = new Date()
+      const today = selectedDate
 
       // Check if there's an existing entry for today
       const currentEntry = entries.find((entry) => new Date(entry.date).toDateString() === today.toDateString())
@@ -87,10 +95,8 @@ export default function NewEntryDialog({ onOpenChange, onSave, entries, selected
         })
         setIsEditing(false)
       }
-
-      setSelectedDate(today)
     }
-  }, [selectedEntry, form, entries])
+  }, [selectedEntry, form, entries, selectedDate])
 
   // Handle date change from calendar
   const handleDateChange = (date: Date | undefined) => {
@@ -103,12 +109,10 @@ export default function NewEntryDialog({ onOpenChange, onSave, entries, selected
     const existingEntry = entries.find((entry) => new Date(entry.date).toDateString() === date.toDateString())
 
     if (existingEntry) {
-      form.setValue("mood", existingEntry.mood)
-      form.setValue("notes", existingEntry.notes || "")
+      // If editing an existing entry, update the isEditing state but don't reset the form
       setIsEditing(true)
     } else {
-      form.setValue("mood", 3)
-      form.setValue("notes", "")
+      // If creating a new entry, just update the isEditing state
       setIsEditing(false)
     }
   }
@@ -121,17 +125,17 @@ export default function NewEntryDialog({ onOpenChange, onSave, entries, selected
     })
   }
 
-  const formattedDate = format(selectedDate, "MMMM d, yyyy")
+  const formattedDate = selectedDate ? format(selectedDate, "MMMM d, yyyy") : ""
   const dialogTitle = isEditing ? `Edit Mood for ${formattedDate}` : "How are you feeling?"
 
   return (
     <Dialog open={true} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{dialogTitle}</DialogTitle>
         </DialogHeader>
 
-        {isEditing && (
+        {isEditing && selectedDate && (
           <Alert className="bg-amber-50 border-amber-200 dark:bg-amber-950 dark:border-amber-900">
             <AlertCircle className="h-4 w-4 text-amber-600 dark:text-amber-400" aria-hidden="true" />
             <AlertDescription className="text-amber-800 dark:text-amber-300">
@@ -216,7 +220,9 @@ export default function NewEntryDialog({ onOpenChange, onSave, entries, selected
             />
 
             <DialogFooter>
-              <Button type="submit">{isEditing ? "Update Entry" : "Save Entry"}</Button>
+              <Button type="submit" className="w-full sm:w-auto">
+                {isEditing ? "Update Entry" : "Save Entry"}
+              </Button>
             </DialogFooter>
           </form>
         </Form>

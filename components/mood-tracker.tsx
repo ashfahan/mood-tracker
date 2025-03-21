@@ -7,36 +7,21 @@ import MoodAnalytics from "./mood-analytics"
 import DeleteConfirmationDialog from "./delete-confirmation-dialog"
 import NewEntryDialog from "./new-entry-dialog"
 import type { MoodEntry } from "@/types/mood"
-import { useLocalStorage } from "@/hooks/use-local-storage"
+import { useMood } from "@/contexts/mood-context"
 
 interface MoodTrackerProps {
   initialTab: "analytics" | "history"
 }
 
 export default function MoodTracker({ initialTab }: MoodTrackerProps) {
-  const [moodEntries, setMoodEntries] = useLocalStorage<MoodEntry[]>("moodEntries", [])
+  const { moodEntries, addOrUpdateEntry, deleteEntry } = useMood()
   const [selectedEntry, setSelectedEntry] = useState<MoodEntry | null>(null)
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [entryToDelete, setEntryToDelete] = useState<MoodEntry | null>(null)
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
 
   const handleSaveEntry = (entry: MoodEntry) => {
-    const dateStr = new Date(entry.date).toDateString()
-
-    // Check if an entry already exists for this date
-    const existingEntryIndex = moodEntries.findIndex((e) => new Date(e.date).toDateString() === dateStr)
-
-    if (existingEntryIndex >= 0) {
-      // Update existing entry
-      const updatedEntries = [...moodEntries]
-      updatedEntries[existingEntryIndex] = entry
-      setMoodEntries(updatedEntries)
-    } else {
-      // Add new entry
-      setMoodEntries([...moodEntries, entry])
-    }
-
-    // Close dialog
+    addOrUpdateEntry(entry)
     setIsDialogOpen(false)
   }
 
@@ -47,13 +32,7 @@ export default function MoodTracker({ initialTab }: MoodTrackerProps) {
 
   const confirmDeleteEntry = () => {
     if (!entryToDelete) return
-
-    // Filter out the entry to delete
-    const updatedEntries = moodEntries.filter(
-      (entry) => new Date(entry.date).toDateString() !== new Date(entryToDelete.date).toDateString(),
-    )
-
-    setMoodEntries(updatedEntries)
+    deleteEntry(entryToDelete)
     setIsDeleteDialogOpen(false)
     setEntryToDelete(null)
   }
