@@ -44,18 +44,12 @@ export default function MoodTracker({ initialTab }: MoodTrackerProps) {
     // Toast is now handled in the NewEntryDialog component
     // But we need to handle the undo action here
     if (isNewEntry) {
-      // For new entries
+      // For new entries - no undo action
       toast.success(`Mood tracked for ${format(new Date(entry.date), "MMMM d, yyyy")}`, {
-        action: {
-          label: "Undo",
-          onClick: () => {
-            deleteEntry(entry)
-            toast.info("Entry removed")
-          },
-        },
+        // No action property for undo
       })
     } else if (originalEntry) {
-      // For updates
+      // For updates - keep undo action
       toast.success(`Mood updated for ${format(new Date(entry.date), "MMMM d, yyyy")}`, {
         action: {
           label: "Undo",

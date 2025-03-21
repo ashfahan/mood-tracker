@@ -52,7 +52,7 @@ export default function NewEntryDialog({ onOpenChange, onSave, entries, selected
     resolver: zodResolver(formSchema),
     defaultValues: {
       date: new Date(),
-      mood: 3,
+      mood: undefined,
       notes: "",
     },
   })
@@ -85,7 +85,7 @@ export default function NewEntryDialog({ onOpenChange, onSave, entries, selected
       } else {
         form.reset({
           date: today,
-          mood: 3,
+          mood: undefined,
           notes: "",
         })
         setIsEditing(false)
@@ -99,11 +99,13 @@ export default function NewEntryDialog({ onOpenChange, onSave, entries, selected
   const handleDateChange = (date: Date | undefined) => {
     if (!date) return
 
+    // Only update the date field, keeping other form values
     form.setValue("date", date)
 
     // Check if there's an entry for the selected date
     const existingEntry = entries.find((entry) => new Date(entry.date).toDateString() === date.toDateString())
 
+    // Update isEditing state based on whether an entry exists for this date
     setIsEditing(!!existingEntry)
   }
 
@@ -130,12 +132,6 @@ export default function NewEntryDialog({ onOpenChange, onSave, entries, selected
       toast.success(`Mood tracked for ${formattedDate}`, {
         description: `You're feeling ${MOOD_LABELS[entry.mood].toLowerCase()}`,
         icon: MOOD_ICONS[entry.mood],
-        action: {
-          label: "Undo",
-          onClick: () => {
-            // This will be handled by the parent component
-          },
-        },
       })
     } else {
       toast.success(`Mood updated for ${formattedDate}`, {
@@ -152,6 +148,7 @@ export default function NewEntryDialog({ onOpenChange, onSave, entries, selected
   }
 
   const selectedDate = form.watch("date")
+  const selectedMood = form.watch("mood")
   const formattedDate = selectedDate ? format(selectedDate, "MMMM d, yyyy") : ""
   const dialogTitle = isEditing ? `Edit Mood for ${formattedDate}` : "How are you feeling?"
 
@@ -166,7 +163,8 @@ export default function NewEntryDialog({ onOpenChange, onSave, entries, selected
           <Alert className="bg-amber-50 border-amber-200 dark:bg-amber-950 dark:border-amber-900">
             <AlertCircle className="h-4 w-4 text-amber-600 dark:text-amber-400" aria-hidden="true" />
             <AlertDescription className="text-amber-800 dark:text-amber-300">
-              You're editing an existing entry for {formattedDate}.
+              You're editing an existing entry for {formattedDate}. If you want to create an entry for a different day,
+              update the date below.
             </AlertDescription>
           </Alert>
         )}
@@ -247,7 +245,7 @@ export default function NewEntryDialog({ onOpenChange, onSave, entries, selected
             />
 
             <DialogFooter>
-              <Button type="submit" className="w-full sm:w-auto">
+              <Button type="submit" className="w-full sm:w-auto" disabled={!selectedMood}>
                 {isEditing ? "Update Entry" : "Save Entry"}
               </Button>
             </DialogFooter>
