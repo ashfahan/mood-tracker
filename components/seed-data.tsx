@@ -5,6 +5,7 @@ import type { MoodEntry } from "@/types/mood"
 import { subDays } from "date-fns"
 import { useState, type ReactNode } from "react"
 import { Loader2 } from "lucide-react"
+import { toast } from "sonner"
 
 interface SeedDataProps {
   onSeedComplete: (entries: MoodEntry[]) => void
@@ -25,6 +26,11 @@ export default function SeedData({
 
   const generateSeedData = () => {
     setIsSeeding(true)
+
+    // Create a unique ID for the loading toast so we can dismiss it later
+    const loadingToastId = toast.loading("Generating sample data...", {
+      description: "Please wait while we create sample mood entries",
+    })
 
     // Generate 90 days of data
     const entries: MoodEntry[] = []
@@ -103,6 +109,15 @@ export default function SeedData({
     setTimeout(() => {
       onSeedComplete(entries)
       setIsSeeding(false)
+
+      // Dismiss the loading toast
+      toast.dismiss(loadingToastId)
+
+      // Show success toast with auto-dismiss
+      toast.success("Sample Data Generated", {
+        description: `Successfully created ${entries.length} sample mood entries.`,
+        duration: 3000, // Auto-dismiss after 3 seconds
+      })
     }, 1000)
   }
 

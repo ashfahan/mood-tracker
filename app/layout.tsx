@@ -3,6 +3,7 @@ import { Inter } from "next/font/google"
 import "./globals.css"
 import { ThemeProvider } from "@/components/theme-provider"
 import { MoodProvider } from "@/contexts/mood-context"
+import { Toaster } from "@/components/ui/sonner"
 
 const inter = Inter({ subsets: ["latin"] })
 
@@ -26,6 +27,7 @@ export default function RootLayout({
               <h1 className="text-2xl sm:text-3xl font-bold text-center mb-6 sm:mb-8">Mood Tracker</h1>
               {children}
             </main>
+            <Toaster />
           </MoodProvider>
         </ThemeProvider>
       </body>

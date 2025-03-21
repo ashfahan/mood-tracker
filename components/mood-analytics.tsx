@@ -397,15 +397,49 @@ const DateRangeSelector = ({
     from: startDate,
     to: endDate,
   })
+  const [previousRange, setPreviousRange] = useState<{
+    range: "7" | "15" | "30" | "custom"
+    start: Date
+    end: Date
+  }>({
+    range: "30",
+    start: subDays(new Date(), 30),
+    end: new Date(),
+  })
 
   // Handle date range selection
   const handleCalendarSelect = (range: DateRange | undefined) => {
     if (range?.from && range?.to) {
+      // Store previous range for undo
+      setPreviousRange({
+        range: timeRange,
+        start: startDate,
+        end: endDate,
+      })
+
       setDate(range)
       handleDateRangeChange(range.from, range.to)
     } else if (range?.from) {
       setDate({ ...range })
     }
+  }
+
+  const handlePresetChange = (newRange: "7" | "15" | "30", days: number) => {
+    // Store previous range for undo
+    setPreviousRange({
+      range: timeRange,
+      start: startDate,
+      end: endDate,
+    })
+
+    setTimeRange(newRange)
+    const newStartDate = subDays(new Date(), days)
+    setStartDate(newStartDate)
+    setEndDate(new Date())
+    setDate({
+      from: newStartDate,
+      to: new Date(),
+    })
   }
 
   return (
@@ -415,15 +449,7 @@ const DateRangeSelector = ({
           variant={timeRange === "7" ? "default" : "outline"}
           size="sm"
           className="text-xs sm:text-sm"
-          onClick={() => {
-            setTimeRange("7")
-            setStartDate(subDays(new Date(), 7))
-            setEndDate(new Date())
-            setDate({
-              from: subDays(new Date(), 7),
-              to: new Date(),
-            })
-          }}
+          onClick={() => handlePresetChange("7", 7)}
         >
           7 Days
         </Button>
@@ -431,15 +457,7 @@ const DateRangeSelector = ({
           variant={timeRange === "15" ? "default" : "outline"}
           size="sm"
           className="text-xs sm:text-sm"
-          onClick={() => {
-            setTimeRange("15")
-            setStartDate(subDays(new Date(), 15))
-            setEndDate(new Date())
-            setDate({
-              from: subDays(new Date(), 15),
-              to: new Date(),
-            })
-          }}
+          onClick={() => handlePresetChange("15", 15)}
         >
           15 Days
         </Button>
@@ -447,15 +465,7 @@ const DateRangeSelector = ({
           variant={timeRange === "30" ? "default" : "outline"}
           size="sm"
           className="text-xs sm:text-sm"
-          onClick={() => {
-            setTimeRange("30")
-            setStartDate(subDays(new Date(), 30))
-            setEndDate(new Date())
-            setDate({
-              from: subDays(new Date(), 30),
-              to: new Date(),
-            })
-          }}
+          onClick={() => handlePresetChange("30", 30)}
         >
           30 Days
         </Button>

@@ -16,6 +16,8 @@ import { CalendarIcon, AlertCircle } from "lucide-react"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Calendar } from "@/components/ui/calendar"
 import { cn } from "@/lib/utils"
+import { toast } from "sonner"
+import { MOOD_ICONS, MOOD_LABELS } from "@/constants/mood"
 
 interface NewEntryDialogProps {
   onOpenChange: (open: boolean) => void
@@ -43,14 +45,8 @@ const formSchema = z.object({
 })
 
 export default function NewEntryDialog({ onOpenChange, onSave, entries, selectedEntry = null }: NewEntryDialogProps) {
-  const [selectedDate, setSelectedDate] = useState<Date | null>(null)
-
-  // Initialize dates on client-side only
-  useEffect(() => {
-    setSelectedDate(new Date())
-  }, [])
-
   const [isEditing, setIsEditing] = useState(false)
+  const [initialized, setInitialized] = useState(false)
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -61,9 +57,11 @@ export default function NewEntryDialog({ onOpenChange, onSave, entries, selected
     },
   })
 
-  // Initialize form based on selectedEntry
+  // Initialize form based on selectedEntry or current date - only run once
   useEffect(() => {
-    if (!selectedDate) return
+    if (initialized) return
+
+    const today = new Date()
 
     if (selectedEntry) {
       const entryDate = new Date(selectedEntry.date)
@@ -72,11 +70,8 @@ export default function NewEntryDialog({ onOpenChange, onSave, entries, selected
         mood: selectedEntry.mood,
         notes: selectedEntry.notes || "",
       })
-      setSelectedDate(entryDate)
       setIsEditing(true)
     } else {
-      const today = selectedDate
-
       // Check if there's an existing entry for today
       const currentEntry = entries.find((entry) => new Date(entry.date).toDateString() === today.toDateString())
 
@@ -96,35 +91,67 @@ export default function NewEntryDialog({ onOpenChange, onSave, entries, selected
         setIsEditing(false)
       }
     }
-  }, [selectedEntry, form, entries, selectedDate])
+
+    setInitialized(true)
+  }, [selectedEntry, form, entries, initialized])
 
   // Handle date change from calendar
   const handleDateChange = (date: Date | undefined) => {
     if (!date) return
 
-    setSelectedDate(date)
     form.setValue("date", date)
 
     // Check if there's an entry for the selected date
     const existingEntry = entries.find((entry) => new Date(entry.date).toDateString() === date.toDateString())
 
-    if (existingEntry) {
-      // If editing an existing entry, update the isEditing state but don't reset the form
-      setIsEditing(true)
-    } else {
-      // If creating a new entry, just update the isEditing state
-      setIsEditing(false)
-    }
+    setIsEditing(!!existingEntry)
   }
 
   const onSubmit = (values: z.infer<typeof formSchema>) => {
-    onSave({
+    const entry = {
       date: values.date,
       mood: values.mood,
       notes: values.notes || "",
-    })
+    }
+
+    // Check if this is a new entry or an update
+    const dateStr = new Date(entry.date).toDateString()
+    const existingEntry = entries.find((e) => new Date(e.date).toDateString() === dateStr)
+
+    const isNewEntry = !existingEntry
+    const originalEntry = existingEntry ? { ...existingEntry } : null
+
+    onSave(entry)
+
+    // Show Sonner toast notification
+    const formattedDate = format(new Date(entry.date), "MMMM d, yyyy")
+
+    if (isNewEntry) {
+      toast.success(`Mood tracked for ${formattedDate}`, {
+        description: `You're feeling ${MOOD_LABELS[entry.mood].toLowerCase()}`,
+        icon: MOOD_ICONS[entry.mood],
+        action: {
+          label: "Undo",
+          onClick: () => {
+            // This will be handled by the parent component
+          },
+        },
+      })
+    } else {
+      toast.success(`Mood updated for ${formattedDate}`, {
+        description: `You're feeling ${MOOD_LABELS[entry.mood].toLowerCase()}`,
+        icon: MOOD_ICONS[entry.mood],
+        action: {
+          label: "Undo",
+          onClick: () => {
+            // This will be handled by the parent component
+          },
+        },
+      })
+    }
   }
 
+  const selectedDate = form.watch("date")
   const formattedDate = selectedDate ? format(selectedDate, "MMMM d, yyyy") : ""
   const dialogTitle = isEditing ? `Edit Mood for ${formattedDate}` : "How are you feeling?"
 
