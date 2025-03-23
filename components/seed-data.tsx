@@ -19,7 +19,7 @@ export default function SeedData({
   onSeedComplete,
   buttonVariant = "default",
   buttonIcon,
-  buttonText = "Generate 90 Days of Sample Data",
+  buttonText = "Generate 30 Days of Sample Data",
   className = "",
 }: SeedDataProps) {
   const [isSeeding, setIsSeeding] = useState(false)
@@ -32,16 +32,22 @@ export default function SeedData({
       description: "Please wait while we create sample mood entries",
     })
 
-    // Generate 90 days of data
+    // Generate 30 days of data
     const entries: MoodEntry[] = []
     const today = new Date()
+    const todayString = today.toDateString()
 
     // Create a pattern with some randomness
     // Start with a baseline mood
     let baselineMood = Math.floor(Math.random() * 3) + 2 // 2-4
 
-    for (let i = 0; i < 90; i++) {
+    for (let i = 0; i < 30; i++) {
       const date = subDays(today, i)
+
+      // Skip the current date
+      if (date.toDateString() === todayString) {
+        continue
+      }
 
       // Skip some random days (about 20% of days)
       if (Math.random() > 0.8) {
@@ -113,11 +119,7 @@ export default function SeedData({
       // Dismiss the loading toast
       toast.dismiss(loadingToastId)
 
-      // Show success toast with auto-dismiss
-      toast.success("Sample Data Generated", {
-        description: `Successfully created ${entries.length} sample mood entries.`,
-        duration: 3000, // Auto-dismiss after 3 seconds
-      })
+      // We don't need to show a success toast here as it will be handled by the parent component
     }, 1000)
   }
 

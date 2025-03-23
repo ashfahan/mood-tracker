@@ -5,31 +5,26 @@ import { useForm } from "react-hook-form"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
-import { format, isFuture } from "date-fns"
+import { format } from "date-fns"
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
-import { Alert, AlertDescription } from "@/components/ui/alert"
 import MoodSelector from "./mood-selector"
 import type { MoodEntry } from "@/types/mood"
 import { z } from "zod"
 import { zodResolver } from "@hookform/resolvers/zod"
-import { CalendarIcon, AlertCircle } from "lucide-react"
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import { Calendar } from "@/components/ui/calendar"
-import { cn } from "@/lib/utils"
 import { toast } from "sonner"
-import { MOOD_ICONS, MOOD_LABELS } from "@/constants/mood"
+import { MOOD_ICONS } from "@/constants/mood"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { AlertCircle } from "lucide-react"
 
 interface NewEntryDialogProps {
   onOpenChange: (open: boolean) => void
   onSave: (entry: MoodEntry) => void
   entries: MoodEntry[]
   selectedEntry?: MoodEntry | null
+  isUpdatingToday?: boolean
 }
 
 const formSchema = z.object({
-  date: z.date({
-    required_error: "A date is required",
-  }),
   mood: z
     .number({
       required_error: "Please select a mood",
@@ -44,17 +39,25 @@ const formSchema = z.object({
     .optional(),
 })
 
-export default function NewEntryDialog({ onOpenChange, onSave, entries, selectedEntry = null }: NewEntryDialogProps) {
+export default function NewEntryDialog({
+  onOpenChange,
+  onSave,
+  entries,
+  selectedEntry = null,
+  isUpdatingToday = false,
+}: NewEntryDialogProps) {
   const [isEditing, setIsEditing] = useState(false)
   const [initialized, setInitialized] = useState(false)
+  const [originalEntry, setOriginalEntry] = useState<MoodEntry | null>(null)
+  const [entryDate, setEntryDate] = useState<Date>(new Date())
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      date: new Date(),
       mood: undefined,
       notes: "",
     },
+    mode: "onChange", // Validate on change to show errors immediately
   })
 
   // Initialize form based on selectedEntry or current date - only run once
@@ -64,27 +67,30 @@ export default function NewEntryDialog({ onOpenChange, onSave, entries, selected
     const today = new Date()
 
     if (selectedEntry) {
-      const entryDate = new Date(selectedEntry.date)
+      // If we're editing a specific entry
+      const selectedEntryDate = new Date(selectedEntry.date)
+      setEntryDate(selectedEntryDate)
       form.reset({
-        date: entryDate,
         mood: selectedEntry.mood,
         notes: selectedEntry.notes || "",
       })
+      setOriginalEntry(selectedEntry)
       setIsEditing(true)
     } else {
       // Check if there's an existing entry for today
       const currentEntry = entries.find((entry) => new Date(entry.date).toDateString() === today.toDateString())
 
       if (currentEntry) {
+        setEntryDate(today)
         form.reset({
-          date: today,
           mood: currentEntry.mood,
           notes: currentEntry.notes || "",
         })
+        setOriginalEntry(currentEntry)
         setIsEditing(true)
       } else {
+        setEntryDate(today)
         form.reset({
-          date: today,
           mood: undefined,
           notes: "",
         })
@@ -95,23 +101,9 @@ export default function NewEntryDialog({ onOpenChange, onSave, entries, selected
     setInitialized(true)
   }, [selectedEntry, form, entries, initialized])
 
-  // Handle date change from calendar
-  const handleDateChange = (date: Date | undefined) => {
-    if (!date) return
-
-    // Only update the date field, keeping other form values
-    form.setValue("date", date)
-
-    // Check if there's an entry for the selected date
-    const existingEntry = entries.find((entry) => new Date(entry.date).toDateString() === date.toDateString())
-
-    // Update isEditing state based on whether an entry exists for this date
-    setIsEditing(!!existingEntry)
-  }
-
   const onSubmit = (values: z.infer<typeof formSchema>) => {
     const entry = {
-      date: values.date,
+      date: entryDate,
       mood: values.mood,
       notes: values.notes || "",
     }
@@ -119,38 +111,35 @@ export default function NewEntryDialog({ onOpenChange, onSave, entries, selected
     // Check if this is a new entry or an update
     const dateStr = new Date(entry.date).toDateString()
     const existingEntry = entries.find((e) => new Date(e.date).toDateString() === dateStr)
-
     const isNewEntry = !existingEntry
-    const originalEntry = existingEntry ? { ...existingEntry } : null
 
+    // Call the onSave callback
     onSave(entry)
 
-    // Show Sonner toast notification
-    const formattedDate = format(new Date(entry.date), "MMMM d, yyyy")
+    // Show toast for today's entry update
+    const today = new Date().toDateString()
+    if (dateStr === today && !isNewEntry) {
+      // For updates to today's entry - show toast with note if available
+      const toastOptions: any = {
+        icon: MOOD_ICONS[entry.mood],
+      }
 
-    if (isNewEntry) {
-      toast.success(`Mood tracked for ${formattedDate}`, {
-        description: `You're feeling ${MOOD_LABELS[entry.mood].toLowerCase()}`,
-        icon: MOOD_ICONS[entry.mood],
-      })
-    } else {
-      toast.success(`Mood updated for ${formattedDate}`, {
-        description: `You're feeling ${MOOD_LABELS[entry.mood].toLowerCase()}`,
-        icon: MOOD_ICONS[entry.mood],
-        action: {
-          label: "Undo",
-          onClick: () => {
-            // This will be handled by the parent component
-          },
-        },
-      })
+      // Only add description if there's a note
+      if (entry.notes) {
+        toastOptions.description = entry.notes
+      }
+
+      toast.success(`Mood updated for ${format(new Date(entry.date), "MMMM d, yyyy")}`, toastOptions)
     }
   }
 
-  const selectedDate = form.watch("date")
-  const selectedMood = form.watch("mood")
-  const formattedDate = selectedDate ? format(selectedDate, "MMMM d, yyyy") : ""
-  const dialogTitle = isEditing ? `Edit Mood for ${formattedDate}` : "How are you feeling?"
+  // Custom submit handler to trigger validation
+  const handleSubmit = () => {
+    form.handleSubmit(onSubmit)()
+  }
+
+  const formattedDate = format(entryDate, "MMMM d, yyyy")
+  const dialogTitle = isEditing ? `Edit Mood for ${formattedDate}` : "How are you feeling today?"
 
   return (
     <Dialog open={true} onOpenChange={onOpenChange}>
@@ -159,53 +148,33 @@ export default function NewEntryDialog({ onOpenChange, onSave, entries, selected
           <DialogTitle>{dialogTitle}</DialogTitle>
         </DialogHeader>
 
-        {isEditing && selectedDate && (
-          <Alert className="bg-amber-50 border-amber-200 dark:bg-amber-950 dark:border-amber-900">
-            <AlertCircle className="h-4 w-4 text-amber-600 dark:text-amber-400" aria-hidden="true" />
-            <AlertDescription className="text-amber-800 dark:text-amber-300">
-              You're editing an existing entry for {formattedDate}. If you want to create an entry for a different day,
-              update the date below.
+        {/* Alert for updating today's entry */}
+        {isUpdatingToday && (
+          <Alert variant="warning" className="mt-2 mb-4">
+            <AlertCircle className="h-4 w-4" />
+            <AlertTitle>Entry Already Exists</AlertTitle>
+            <AlertDescription>
+              You already have a mood entry for today. You're updating your existing entry.
             </AlertDescription>
           </Alert>
         )}
 
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-            <FormField
-              control={form.control}
-              name="date"
-              render={({ field }) => (
-                <FormItem className="flex flex-col">
-                  <FormLabel id="date-label">Date</FormLabel>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <FormControl>
-                        <Button
-                          variant="outline"
-                          className={cn("w-full pl-3 text-left font-normal", !field.value && "text-muted-foreground")}
-                          aria-labelledby="date-label"
-                        >
-                          {field.value ? format(field.value, "PPP") : <span>Pick a date</span>}
-                          <CalendarIcon className="ml-auto h-4 w-4 opacity-50" aria-hidden="true" />
-                        </Button>
-                      </FormControl>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
-                      <Calendar
-                        mode="single"
-                        selected={field.value}
-                        onSelect={handleDateChange}
-                        disabled={(date) => isFuture(date)}
-                        initialFocus
-                        aria-label="Select date"
-                      />
-                    </PopoverContent>
-                  </Popover>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
+          <form
+            onSubmit={form.handleSubmit(onSubmit)}
+            className="space-y-6"
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && !e.shiftKey) {
+                // Only submit if Enter is pressed without Shift (to allow multiline in textarea)
+                if (e.target instanceof HTMLTextAreaElement) {
+                  // Don't submit when pressing Enter in a textarea unless Ctrl+Enter is pressed
+                  if (!e.ctrlKey) return
+                }
+                e.preventDefault()
+                handleSubmit()
+              }
+            }}
+          >
             <FormField
               control={form.control}
               name="mood"
@@ -233,7 +202,7 @@ export default function NewEntryDialog({ onOpenChange, onSave, entries, selected
                   <FormControl>
                     <Textarea
                       id="notes"
-                      placeholder="Write a short note about your day..."
+                      placeholder="Write a short note about your day... (Press Enter to submit, Shift+Enter for new line)"
                       {...field}
                       value={field.value || ""}
                       rows={4}
@@ -245,7 +214,7 @@ export default function NewEntryDialog({ onOpenChange, onSave, entries, selected
             />
 
             <DialogFooter>
-              <Button type="submit" className="w-full sm:w-auto" disabled={!selectedMood}>
+              <Button type="button" onClick={handleSubmit} className="w-full sm:w-auto">
                 {isEditing ? "Update Entry" : "Save Entry"}
               </Button>
             </DialogFooter>
