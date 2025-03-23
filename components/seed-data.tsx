@@ -128,19 +128,19 @@ export default function SeedData({
       variant={buttonVariant}
       onClick={generateSeedData}
       disabled={isSeeding}
-      className={className}
+      className={`whitespace-nowrap ${className}`}
       aria-label="Generate sample mood data"
     >
       {isSeeding ? (
         <>
-          <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" />
-          <span>Generating Data...</span>
+          <Loader2 className="mr-1 sm:mr-2 h-4 w-4 animate-spin" aria-hidden="true" />
+          <span className="truncate">Generating...</span>
           <span className="sr-only">Please wait while sample data is being generated</span>
         </>
       ) : (
         <>
           {buttonIcon && <span aria-hidden="true">{buttonIcon}</span>}
-          {buttonText}
+          <span className="truncate">{buttonText}</span>
         </>
       )}
     </Button>

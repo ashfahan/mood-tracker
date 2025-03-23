@@ -10,6 +10,7 @@ import type { MoodEntry } from "@/types/mood"
 import { useMood } from "@/contexts/mood-context"
 import { toast } from "sonner"
 
+// Remove the showAlert state
 export function Header() {
   const { moodEntries, setMoodEntries, addOrUpdateEntry } = useMood()
   const [isDialogOpen, setIsDialogOpen] = useState(false)
@@ -90,18 +91,18 @@ export function Header() {
 
   return (
     <header className="mb-6 sm:mb-8">
-      <div className="flex justify-between items-center mb-6">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-6">
         <h1 className="text-2xl sm:text-3xl font-bold">Mood Tracker</h1>
-        <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+        <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto justify-start sm:justify-end">
           <SeedData
             onSeedComplete={handleSeedData}
             buttonVariant="outline"
-            buttonIcon={<Database className="h-4 w-4 mr-2" aria-hidden="true" />}
+            buttonIcon={<Database className="h-4 w-4 mr-1 sm:mr-2" aria-hidden="true" />}
             buttonText="Generate Sample Data"
-            className="text-xs sm:text-sm"
+            className="text-xs sm:text-sm flex-grow sm:flex-grow-0"
             key={`seed-data-${forceUpdate}`}
           />
-          <Button onClick={handleNewEntry} className="gap-2 text-xs sm:text-sm">
+          <Button onClick={handleNewEntry} className="gap-1 sm:gap-2 text-xs sm:text-sm flex-grow sm:flex-grow-0">
             <PlusCircle className="h-4 w-4" aria-hidden="true" />
             <span>New Entry</span>
           </Button>
@@ -109,7 +110,7 @@ export function Header() {
             variant="outline"
             size="icon"
             onClick={toggleTheme}
-            className="rounded-full"
+            className="rounded-full ml-auto sm:ml-0"
             aria-label={isDark ? "Switch to light theme" : "Switch to dark theme"}
           >
             <Sun className="h-[1.2rem] w-[1.2rem] rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
@@ -117,6 +118,8 @@ export function Header() {
           </Button>
         </div>
       </div>
+
+      {/* Remove the Alert component */}
 
       {/* Conditionally render the dialog only when it's open */}
       {isDialogOpen && (

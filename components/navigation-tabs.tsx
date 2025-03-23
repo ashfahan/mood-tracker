@@ -6,15 +6,15 @@ import { usePathname } from "next/navigation"
 
 export function NavigationTabs() {
   const pathname = usePathname()
-  const defaultValue = pathname === "/history" ? "/history" : "/"
+  const currentTab = pathname === "/" ? "analytics" : "history"
 
   return (
-    <Tabs defaultValue={defaultValue} className="w-full sm:w-auto">
+    <Tabs defaultValue={currentTab} className="w-full sm:w-auto">
       <TabsList className="w-full sm:w-auto">
-        <TabsTrigger value="/" asChild className="flex-1 sm:flex-none">
+        <TabsTrigger value="analytics" asChild className="flex-1 sm:flex-none">
           <Link href="/">Analytics</Link>
         </TabsTrigger>
-        <TabsTrigger value="/history" asChild className="flex-1 sm:flex-none">
+        <TabsTrigger value="history" asChild className="flex-1 sm:flex-none">
           <Link href="/history">History</Link>
         </TabsTrigger>
       </TabsList>

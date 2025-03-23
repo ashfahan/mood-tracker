@@ -4,7 +4,6 @@ import type React from "react"
 
 import { useState, useEffect, useMemo } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Button } from "@/components/ui/button"
 import { format, subDays } from "date-fns"
 import { ResponsiveLine } from "@nivo/line"
@@ -27,6 +26,7 @@ import {
 import { useMediaQuery } from "@/hooks/use-media-query"
 import { useTheme } from "next-themes"
 import ClientOnly from "@/components/client-only"
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
 // Custom tooltip component for Nivo charts
 const ChartTooltip = ({ point }: any) => {

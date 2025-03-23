@@ -2,15 +2,16 @@
 
 import { useState, useEffect } from "react"
 import { format } from "date-fns"
-import { Card, CardContent } from "@/components/ui/card"
+import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Calendar, Trash2, Pencil } from "lucide-react"
 import DeleteConfirmationDialog from "@/components/delete-confirmation-dialog"
 import NewEntryDialog from "@/components/new-entry-dialog"
 import type { MoodEntry } from "@/types/mood"
-import { MOOD_ICONS, MOOD_ICONS_SMALL } from "@/constants/mood"
+import { MOOD_ICONS, MOOD_ICONS_SMALL, MOOD_COLORS } from "@/constants/mood"
 import { useMood } from "@/contexts/mood-context"
 import { toast } from "sonner"
+import { cn } from "@/lib/utils"
 
 // History Card Item Component
 interface HistoryCardItemProps {
@@ -22,10 +23,12 @@ interface HistoryCardItemProps {
 function HistoryCardItem({ entry, onEdit, onDelete }: HistoryCardItemProps) {
   const entryDate = new Date(entry.date)
   const formattedDate = format(entryDate, "EEEE, MMMM d, yyyy")
+  const moodColor = MOOD_COLORS[entry.mood].split(" ")[0]
+  const borderColor = moodColor.replace("bg-", "border-")
 
   return (
-    <Card className="overflow-hidden border border-l-[6px] border-gray-300">
-      <CardContent className="px-5 py-4 relative">
+    <Card className={cn("overflow-hidden border", "border-l-[6px]", borderColor)}>
+      <CardHeader className="px-5 py-4 relative">
         <div className="flex items-start">
           <div className="flex items-center gap-2">
             {MOOD_ICONS_SMALL[entry.mood]}
@@ -64,7 +67,7 @@ function HistoryCardItem({ entry, onEdit, onDelete }: HistoryCardItemProps) {
             <p className="whitespace-pre-wrap text-left leading-relaxed">{entry.notes}</p>
           </div>
         )}
-      </CardContent>
+      </CardHeader>
     </Card>
   )
 }
