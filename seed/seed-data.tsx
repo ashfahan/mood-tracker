@@ -128,6 +128,7 @@ export default function SeedData({
       variant={buttonVariant}
       onClick={generateSeedData}
       disabled={isSeeding}
+      size="sm"
       className={`whitespace-nowrap ${className}`}
       aria-label="Generate sample mood data"
     >
@@ -146,4 +147,3 @@ export default function SeedData({
     </Button>
   )
 }
-
