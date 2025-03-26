@@ -12,7 +12,6 @@ const inter = Inter({ subsets: ["latin"] })
 export const metadata = {
   title: "Mood Tracker",
   description: "Track and analyze your daily moods",
-  generator: "v0.dev",
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

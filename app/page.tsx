@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button"
 import { format, subDays } from "date-fns"
 import { ResponsiveLine } from "@nivo/line"
 import { BarChart3, TrendingUp } from "lucide-react"
-import NewEntryDialog from "@/components/new-entry-dialog"
+import NewEntryDialog from "@/components/dialogs/new-entry-dialog"
 import type { MoodEntry } from "@/types/mood"
 import { useMood } from "@/contexts/mood-context"
 import { toast } from "sonner"
@@ -25,14 +25,33 @@ import {
 } from "@/lib/mood-utils"
 import { useMediaQuery } from "@/hooks/use-media-query"
 import { useTheme } from "next-themes"
-import ClientOnly from "@/components/client-only"
+import ClientOnly from "@/lib/client-only"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
+// Define types for chart data
+interface ChartDataPoint {
+  x: string
+  y: number | null
+  date?: Date
+  count?: number
+  dayIndex?: number
+}
+
+interface ChartSeries {
+  id: string
+  data: ChartDataPoint[]
+}
+
+// Define type for tooltip point
+interface TooltipPoint {
+  data: ChartDataPoint
+}
+
 // Custom tooltip component for Nivo charts
-const ChartTooltip = ({ point }: any) => {
+const ChartTooltip = ({ point }: { point: TooltipPoint }) => {
   const { theme } = useTheme()
   const isDark = theme === "dark"
-  const moodValue = Math.round(point.data.y)
+  const moodValue = Math.round(point.data.y as number)
 
   return (
     <div
@@ -58,26 +77,26 @@ interface StatsCardProps {
 }
 
 const StatsCard = ({ title, value, icon, subtitle, children }: StatsCardProps) => (
-  <Card>
+  <Card className="h-full">
     <CardHeader className="pb-2">
       <CardTitle className="text-sm font-medium">{title}</CardTitle>
     </CardHeader>
     <CardContent>
-      <div className="flex items-center justify-between">
-        <div className={value === "No data" ? "text-base text-muted-foreground" : "text-2xl font-bold"}>
-          {value === "No data" ? "No data available" : value}
+      {children ? (
+        children
+      ) : (
+        <div className={value === "No data" ? "text-2xl text-muted-foreground" : "text-2xl font-bold"}>
+          {value === "No data" ? "No entries yet" : value}
         </div>
-        {icon}
-      </div>
-      {subtitle && <p className="text-xs text-muted-foreground">{subtitle}</p>}
-      {children}
+      )}
+      {subtitle && <p className="text-xs text-muted-foreground mt-1">{subtitle}</p>}
     </CardContent>
   </Card>
 )
 
 // Daily Mood Chart Component
 interface DailyMoodChartProps {
-  data: any[]
+  data: ChartSeries[]
   isMobile: boolean
   timeRange: string
 }
@@ -91,10 +110,10 @@ const DailyMoodChart = ({ data, isMobile, timeRange }: DailyMoodChartProps) => {
     if (isMobile) {
       if (timeRange === "30") {
         // For 30 days on mobile, show only every ~5th day
-        return data[0].data.filter((_: any, i: number) => i % 5 === 0).map((d: any) => d.x)
+        return data[0].data.filter((_, i: number) => i % 5 === 0).map((d) => d.x)
       } else if (timeRange === "15") {
         // For 15 days on mobile, show only every ~3rd day
-        return data[0].data.filter((_: any, i: number) => i % 3 === 0).map((d: any) => d.x)
+        return data[0].data.filter((_, i: number) => i % 3 === 0).map((d) => d.x)
       }
     }
     // Default: show all ticks or a reasonable number for other cases
@@ -235,19 +254,53 @@ const DailyMoodChart = ({ data, isMobile, timeRange }: DailyMoodChartProps) => {
 
 // Weekday Mood Chart Component
 interface WeekdayMoodChartProps {
-  data: any[]
+  data: ChartSeries[]
   isMobile: boolean
 }
 
 const WeekdayMoodChart = ({ data, isMobile }: WeekdayMoodChartProps) => {
   const { theme } = useTheme()
   const isDark = theme === "dark"
+  const isVerySmallScreen = useMediaQuery("(max-width: 400px)")
+
+  // Format weekday labels for small screens
+  const formatWeekdayLabel = (day: string) => {
+    if (isVerySmallScreen) {
+      // For very small screens, use first 1-2 letters
+      return day.substring(0, day === "Thursday" || day === "Tuesday" || day === "Saturday" || day === "Sunday" ? 2 : 1)
+    } else if (isMobile) {
+      // For mobile screens, use first 3 letters
+      return day.substring(0, 3)
+    }
+    // For larger screens, use full day name
+    return day
+  }
+
+  // Process data to format day labels
+  const processedData = useMemo(() => {
+    if (!data || data.length === 0 || !data[0].data) return data
+
+    return [
+      {
+        ...data[0],
+        data: data[0].data.map((item) => ({
+          ...item,
+          x: formatWeekdayLabel(item.x),
+        })),
+      },
+    ]
+  }, [data, isMobile, isVerySmallScreen])
 
   return (
     <div className="h-full w-full">
       <ResponsiveLine
-        data={data}
-        margin={{ top: 50, right: 50, bottom: 70, left: 60 }}
+        data={processedData}
+        margin={{
+          top: 50,
+          right: isVerySmallScreen ? 30 : 50,
+          bottom: 70,
+          left: isVerySmallScreen ? 40 : 60,
+        }}
         xScale={{ type: "point" }}
         yScale={{
           type: "linear",
@@ -268,6 +321,7 @@ const WeekdayMoodChart = ({ data, isMobile }: WeekdayMoodChartProps) => {
           legendPosition: "middle",
           tickColor: isDark ? "#ffffff" : "#333333",
           legendColor: isDark ? "#ffffff" : "#333333",
+          format: (value) => value,
         }}
         axisLeft={{
           tickSize: 5,
@@ -275,7 +329,7 @@ const WeekdayMoodChart = ({ data, isMobile }: WeekdayMoodChartProps) => {
           tickRotation: 0,
           tickValues: [1, 2, 3, 4, 5],
           legend: "Average Mood",
-          legendOffset: -40,
+          legendOffset: isVerySmallScreen ? -30 : -40,
           legendPosition: "middle",
           tickColor: isDark ? "#ffffff" : "#333333",
           legendColor: isDark ? "#ffffff" : "#333333",
@@ -305,13 +359,13 @@ const WeekdayMoodChart = ({ data, isMobile }: WeekdayMoodChartProps) => {
               },
               text: {
                 fill: isDark ? "#ffffff" : "#333333",
-                fontSize: 12,
+                fontSize: isVerySmallScreen ? 10 : 12,
               },
             },
             legend: {
               text: {
                 fill: isDark ? "#ffffff" : "#333333",
-                fontSize: 14,
+                fontSize: isVerySmallScreen ? 12 : 14,
                 fontWeight: "bold",
               },
             },
@@ -382,12 +436,12 @@ interface DateRangeSelectorProps {
 
 const DateRangeSelector = ({ timeRange, setTimeRange }: DateRangeSelectorProps) => {
   return (
-    <div className="flex flex-wrap gap-2">
-      <div className="grid grid-cols-3 gap-2 w-full sm:w-auto">
+    <div className="w-full sm:w-auto">
+      <div className="grid grid-cols-3 gap-2 w-full">
         <Button
           variant={timeRange === "7" ? "default" : "outline"}
           size="sm"
-          className="text-xs sm:text-sm"
+          className="text-xs sm:text-sm w-full"
           onClick={() => setTimeRange("7")}
         >
           7 Days
@@ -395,7 +449,7 @@ const DateRangeSelector = ({ timeRange, setTimeRange }: DateRangeSelectorProps) 
         <Button
           variant={timeRange === "15" ? "default" : "outline"}
           size="sm"
-          className="text-xs sm:text-sm"
+          className="text-xs sm:text-sm w-full"
           onClick={() => setTimeRange("15")}
         >
           15 Days
@@ -403,7 +457,7 @@ const DateRangeSelector = ({ timeRange, setTimeRange }: DateRangeSelectorProps) 
         <Button
           variant={timeRange === "30" ? "default" : "outline"}
           size="sm"
-          className="text-xs sm:text-sm"
+          className="text-xs sm:text-sm w-full"
           onClick={() => setTimeRange("30")}
         >
           30 Days
@@ -510,22 +564,18 @@ export default function HomePage() {
 
     const isNewEntry = !existingEntry
     const originalEntry = existingEntry ? { ...existingEntry } : null
+    const today = new Date().toDateString()
+    const isToday = dateStr === today
 
     // Save the entry
     addOrUpdateEntry(entry)
     setIsDialogOpen(false)
 
-    // Toast is now handled in the NewEntryDialog component
-    // But we need to handle the undo action here
-    if (isNewEntry) {
-      // For new entries - no undo action
-      toast.success(`Mood tracked for ${format(new Date(entry.date), "MMMM d, yyyy")}`, {
-        // No action property for undo
-      })
-    } else if (originalEntry) {
-      // For updates - keep undo action with previous design
-      // Only show description if there's a note
-      const toastOptions: any = {
+    // Only show toast for updates to past entries (not today's entry and not new entries)
+    // New entries and today's updates are handled in the NewEntryDialog component
+    if (!isNewEntry && !isToday && originalEntry) {
+      // For updates to past entries - keep undo action with previous design
+      const toastOptions: Record<string, unknown> = {
         icon: MOOD_ICONS[entry.mood],
         action: {
           label: "Undo",
@@ -553,12 +603,22 @@ export default function HomePage() {
     }
   }
 
+  // Determine if we should show data or empty state
+  const hasChartData =
+    filteredEntries.length > 0 &&
+    ((activeChart === "daily" && dailyChartData.length > 0) ||
+      (activeChart === "weekly" && weekdayChartData.length > 0))
+
   return (
     <div className="space-y-6">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 mb-4">
+        <h2 className="text-xl font-semibold">Dashboard</h2>
+        <DateRangeSelector timeRange={timeRange} setTimeRange={setTimeRange} />
+      </div>
       <div className="space-y-6">
         <div className="grid gap-4">
           <div>
-            <div className="grid gap-4 md:grid-cols-3">
+            <div className="grid gap-4 md:grid-cols-3 md:grid-rows-1 md:auto-rows-fr">
               <StatsCard
                 title="Average Mood"
                 value={averageMood}
@@ -568,15 +628,26 @@ export default function HomePage() {
 
               <StatsCard title="Most Frequent Mood" value="" icon={<></>}>
                 {mostFrequentMood ? (
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      {MOOD_ICONS[mostFrequentMood]}
-                      <span className="text-2xl font-bold">{MOOD_LABELS[mostFrequentMood]}</span>
+                  <div>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        {MOOD_ICONS[mostFrequentMood]}
+                        <span className="text-2xl font-bold">{MOOD_LABELS[mostFrequentMood]}</span>
+                      </div>
+                      <div className="text-sm text-muted-foreground">{moodDistribution[mostFrequentMood]} entries</div>
                     </div>
-                    <div className="text-sm text-muted-foreground">{moodDistribution[mostFrequentMood]} entries</div>
+                    <div className="text-xs text-muted-foreground mt-1">
+                      {`${((moodDistribution[mostFrequentMood] / filteredEntries.length) * 100).toFixed(0)}% of your entries`}
+                    </div>
                   </div>
                 ) : (
-                  <div className="text-muted-foreground">No data available</div>
+                  <div>
+                    <div className="flex items-center justify-between">
+                      <div className="text-2xl text-muted-foreground">No entries yet</div>
+                      <div className="h-4 w-4"></div> {/* Empty div to maintain spacing */}
+                    </div>
+                    <div className="text-xs text-muted-foreground mt-1">No entries in selected range</div>
+                  </div>
                 )}
               </StatsCard>
 
@@ -594,13 +665,9 @@ export default function HomePage() {
 
             <Card className="mt-4">
               <CardHeader>
-                <div className="flex flex-col gap-2 sm:flex-row sm:justify-between sm:items-center">
-                  <div>
-                    <CardTitle>Mood Analysis</CardTitle>
-                    <CardDescription>View your mood patterns over time</CardDescription>
-                  </div>
-
-                  <DateRangeSelector timeRange={timeRange} setTimeRange={setTimeRange} />
+                <div>
+                  <CardTitle>Mood Analysis</CardTitle>
+                  <CardDescription>View your mood patterns over time</CardDescription>
                 </div>
 
                 <Tabs
@@ -610,23 +677,23 @@ export default function HomePage() {
                 >
                   <TabsList className="grid w-full max-w-[400px] grid-cols-2">
                     <TabsTrigger value="daily">Daily Mood</TabsTrigger>
-                    <TabsTrigger value="weekly">Weekday Average</TabsTrigger>
+                    <TabsTrigger value="weekly">Week Average</TabsTrigger>
                   </TabsList>
                 </Tabs>
               </CardHeader>
 
               <CardContent>
-                <div className="h-[400px] w-full">
+                <div className={`${hasChartData ? "h-[400px]" : "h-[200px]"} w-full`}>
                   {filteredEntries.length === 0 ? (
-                    <div className="flex items-center justify-center h-full">
-                      <p className="text-muted-foreground">No data available for the selected time range</p>
+                    <div className="flex items-center justify-center h-full w-full text-center">
+                      <p className="text-muted-foreground">No entries yet for the selected time range</p>
                     </div>
                   ) : activeChart === "daily" && dailyChartData.length === 0 ? (
-                    <div className="flex items-center justify-center h-full">
+                    <div className="flex items-center justify-center h-full w-full text-center">
                       <p className="text-muted-foreground">No daily data available for the selected time range</p>
                     </div>
                   ) : activeChart === "weekly" && weekdayChartData.length === 0 ? (
-                    <div className="flex items-center justify-center h-full">
+                    <div className="flex items-center justify-center h-full w-full text-center">
                       <p className="text-muted-foreground">No weekday data available for the selected time range</p>
                     </div>
                   ) : activeChart === "daily" ? (

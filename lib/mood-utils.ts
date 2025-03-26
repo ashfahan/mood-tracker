@@ -87,8 +87,7 @@ export function formatWeekdayChartData(entries: MoodEntry[]) {
 
   entries.forEach((entry) => {
     const entryDate = new Date(entry.date)
-    const weekday = entryDate.getDay() // 0-6, where 0 is Sunday
-
+    const weekday = entryDate.getDay()
     const day = weekdayMap.get(weekday)!
     day.total += entry.mood
     day.count += 1
@@ -116,4 +115,3 @@ export function calculateDaysTrackedPercentage(entries: MoodEntry[], daysInRange
   if (entries.length === 0) return "0"
   return ((entries.length / daysInRange.length) * 100).toFixed(0)
 }
-

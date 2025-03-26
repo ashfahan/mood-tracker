@@ -6,20 +6,20 @@ export type MoodLevel = (typeof MOOD_LEVELS)[number]
 
 // Mood icons
 export const MOOD_ICONS = {
-  1: <HeartCrack className="h-6 w-6 text-gray-500" />,
-  2: <Frown className="h-6 w-6 text-gray-500" />,
-  3: <Meh className="h-6 w-6 text-gray-500" />,
-  4: <Smile className="h-6 w-6 text-gray-500" />,
-  5: <Laugh className="h-6 w-6 text-gray-500" />,
+  1: <HeartCrack className="h-6 w-6 text-current" />,
+  2: <Frown className="h-6 w-6 text-current" />,
+  3: <Meh className="h-6 w-6 text-current" />,
+  4: <Smile className="h-6 w-6 text-current" />,
+  5: <Laugh className="h-6 w-6 text-current" />,
 }
 
 // Smaller mood icons for badges, etc.
 export const MOOD_ICONS_SMALL = {
-  1: <HeartCrack className="h-5 w-5 text-gray-500" />,
-  2: <Frown className="h-5 w-5 text-gray-500" />,
-  3: <Meh className="h-5 w-5 text-gray-500" />,
-  4: <Smile className="h-5 w-5 text-gray-500" />,
-  5: <Laugh className="h-5 w-5 text-gray-500" />,
+  1: <HeartCrack className="h-5 w-5 text-current" />,
+  2: <Frown className="h-5 w-5 text-current" />,
+  3: <Meh className="h-5 w-5 text-current" />,
+  4: <Smile className="h-5 w-5 text-current" />,
+  5: <Laugh className="h-5 w-5 text-current" />,
 }
 
 // Mood labels

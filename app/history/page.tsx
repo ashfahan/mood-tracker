@@ -2,16 +2,17 @@
 
 import { useState, useEffect } from "react"
 import { format } from "date-fns"
-import { Card, CardContent, CardHeader } from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardFooter } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Calendar, Trash2, Pencil } from "lucide-react"
-import DeleteConfirmationDialog from "@/components/delete-confirmation-dialog"
-import NewEntryDialog from "@/components/new-entry-dialog"
+import DeleteConfirmationDialog from "@/components/dialogs/delete-confirmation-dialog"
+import NewEntryDialog from "@/components/dialogs/new-entry-dialog"
 import type { MoodEntry } from "@/types/mood"
 import { MOOD_ICONS, MOOD_ICONS_SMALL, MOOD_COLORS } from "@/constants/mood"
 import { useMood } from "@/contexts/mood-context"
 import { toast } from "sonner"
 import { cn } from "@/lib/utils"
+import { useMediaQuery } from "@/hooks/use-media-query"
 
 // History Card Item Component
 interface HistoryCardItemProps {
@@ -21,53 +22,54 @@ interface HistoryCardItemProps {
 }
 
 function HistoryCardItem({ entry, onEdit, onDelete }: HistoryCardItemProps) {
+  const isMobile = useMediaQuery("(max-width: 640px)")
   const entryDate = new Date(entry.date)
   const formattedDate = format(entryDate, "EEEE, MMMM d, yyyy")
   const moodColor = MOOD_COLORS[entry.mood].split(" ")[0]
   const borderColor = moodColor.replace("bg-", "border-")
 
   return (
-    <Card className={cn("overflow-hidden border", "border-l-[6px]", borderColor)}>
-      <CardHeader className="px-5 py-4 relative">
-        <div className="flex items-start">
-          <div className="flex items-center gap-2">
-            {MOOD_ICONS_SMALL[entry.mood]}
-            <div className="flex flex-col">
-              <span className="font-medium text-base">{format(entryDate, "EEEE")}</span>
-              <span className="text-sm text-muted-foreground">{format(entryDate, "MMMM d, yyyy")}</span>
-            </div>
-          </div>
-
-          <div className="absolute top-4 right-5 flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              className="h-8 gap-1.5 text-primary border-primary/20"
-              onClick={() => onEdit(entry)}
-              aria-label={`Edit entry for ${formattedDate}`}
-            >
-              <Pencil className="h-3.5 w-3.5" aria-hidden="true" />
-              <span>Edit</span>
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              className="h-8 gap-1.5 text-destructive border-destructive/20"
-              onClick={() => onDelete(entry)}
-              aria-label={`Delete entry for ${formattedDate}`}
-            >
-              <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
-              <span>Delete</span>
-            </Button>
+    <Card className={cn("overflow-hidden border", "border-l-[6px]", borderColor, "sm:flex sm:justify-between")}>
+      <CardHeader className="px-4 sm:px-5 py-3 sm:py-4">
+        <div className="flex items-center gap-2">
+          {MOOD_ICONS_SMALL[entry.mood]}
+          <div className="flex flex-col">
+            <span className="font-medium text-base">{format(entryDate, "EEEE")}</span>
+            <span className="text-sm text-muted-foreground">{format(entryDate, "MMMM d, yyyy")}</span>
           </div>
         </div>
 
         {entry.notes && (
-          <div className="mt-3 text-sm text-foreground/80 pl-7" aria-label={`Notes for ${formattedDate}`}>
+          <div className="mt-3 text-sm text-foreground/80" aria-label={`Notes for ${formattedDate}`}>
             <p className="whitespace-pre-wrap text-left leading-relaxed">{entry.notes}</p>
           </div>
         )}
       </CardHeader>
+
+      <CardFooter className="px-4 sm:px-5 py-3 sm:py-4 pt-0">
+        <div className={isMobile ? "grid grid-cols-2 gap-2 w-full" : "flex justify-end gap-2 w-full"}>
+          <Button
+            variant="outline"
+            size="sm"
+            className={`h-9 gap-1.5 text-primary border-primary/20 ${isMobile ? "w-full" : ""}`}
+            onClick={() => onEdit(entry)}
+            aria-label={`Edit entry for ${formattedDate}`}
+          >
+            <Pencil className="h-3.5 w-3.5" aria-hidden="true" />
+            <span className="text-xs sm:text-sm">Edit</span>
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            className={`h-9 gap-1.5 text-destructive border-destructive/20 ${isMobile ? "w-full" : ""}`}
+            onClick={() => onDelete(entry)}
+            aria-label={`Delete entry for ${formattedDate}`}
+          >
+            <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
+            <span className="text-xs sm:text-sm">Delete</span>
+          </Button>
+        </div>
+      </CardFooter>
     </Card>
   )
 }
@@ -92,22 +94,18 @@ export default function HistoryPage() {
 
     const isNewEntry = !existingEntry
     const originalEntry = existingEntry ? { ...existingEntry } : null
+    const today = new Date().toDateString()
+    const isToday = dateStr === today
 
     // Save the entry
     addOrUpdateEntry(entry)
     setIsDialogOpen(false)
 
-    // Toast is now handled in the NewEntryDialog component
-    // But we need to handle the undo action here
-    if (isNewEntry) {
-      // For new entries - no undo action
-      toast.success(`Mood tracked for ${format(new Date(entry.date), "MMMM d, yyyy")}`, {
-        // No action property for undo
-      })
-    } else if (originalEntry) {
-      // For updates - keep undo action with previous design
-      // Only show description if there's a note
-      const toastOptions: any = {
+    // Only show toast for updates to past entries (not today's entry and not new entries)
+    // New entries and today's updates are handled in the NewEntryDialog component
+    if (!isNewEntry && !isToday && originalEntry) {
+      // For updates to past entries - keep undo action with previous design
+      const toastOptions: Record<string, unknown> = {
         icon: MOOD_ICONS[entry.mood],
         action: {
           label: "Undo",
@@ -209,11 +207,13 @@ export default function HistoryPage() {
                 <p className="text-muted-foreground">Start tracking your mood by adding an entry.</p>
               </div>
             ) : (
-              <div className="space-y-8">
+              <div className="space-y-6 sm:space-y-8">
                 {Object.entries(groupedEntries).map(([monthYear, monthEntries]) => (
-                  <div key={monthYear} className="space-y-5">
-                    <h3 className="text-lg font-medium sticky top-0 bg-background py-3 z-10 border-b">{monthYear}</h3>
-                    <div className="space-y-5">
+                  <div key={monthYear} className="space-y-4 sm:space-y-5">
+                    <h3 className="text-base sm:text-lg font-medium sticky top-0 bg-background py-2 sm:py-3 z-10 border-b">
+                      {monthYear}
+                    </h3>
+                    <div className="space-y-3 sm:space-y-5">
                       {monthEntries.map((entry, index) => (
                         <HistoryCardItem
                           key={index}
